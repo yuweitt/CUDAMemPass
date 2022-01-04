@@ -28,5 +28,11 @@ $(BIN_FILE)_dlink.o: $(BIN_FILE).fatbin
 	nvcc $(BIN_FILE).fatbin -gencode arch=compute_61,code=sm_61 -dlink -o $(BIN_FILE)_dlink.o -lcudart -lcudart_static -lcudadevrt
 
 # Link both object files together (either nvcc or clang works here):
-$(BIN_FILE): $(BIN_FILE).o $(BIN_FILE)_dlink.o
-	nvcc $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -arch=sm_61 -lc++
+# $(BIN_FILE): $(BIN_FILE).o 
+# 	nvcc $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -arch=sm_61
+# $(BIN_FILE): $(BIN_FILE).o $(BIN_FILE)_dlink.o
+#	nvcc $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -arch=sm_61 -v
+
+
+clean:
+	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll $(BIN_FILE)
