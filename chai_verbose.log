@@ -1,0 +1,39 @@
+#$ _NVVM_BRANCH_=nvvm
+#$ _SPACE_=
+#$ _CUDART_=cudart
+#$ _HERE_=/usr/local/cuda/bin
+#$ _THERE_=/usr/local/cuda/bin
+#$ _TARGET_SIZE_=
+#$ _TARGET_DIR_=
+#$ _TARGET_DIR_=targets/x86_64-linux
+#$ TOP=/usr/local/cuda/bin/..
+#$ NVVMIR_LIBRARY_DIR=/usr/local/cuda/bin/../nvvm/libdevice
+#$ LD_LIBRARY_PATH=/usr/local/cuda/bin/../lib:/usr/local/cuda/lib64:
+#$ PATH=/usr/local/cuda/bin/../nvvm/bin:/usr/local/cuda/bin:/usr/local/cuda/bin:/home/yuweitt/.local/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+#$ INCLUDES="-I/usr/local/cuda/bin/../targets/x86_64-linux/include"
+#$ LIBRARIES=  "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib/stubs" "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib"
+#$ CUDAFE_FLAGS=
+#$ PTXAS_FLAGS=
+#$ gcc -std=c++11 -D__CUDA_ARCH__=610 -E -x c++  -DCUDA_DOUBLE_MATH_FUNCTIONS -D__CUDACC__ -D__NVCC__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -include "cuda_runtime.h" -m64 "main.cu" -o "/tmp/tmpxft_00001c49_00000000-12_main.cpp1.ii"
+#$ cicc --c++11 --gnu_version=70500 --allow_managed   -arch compute_61 -m64 -ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 --include_file_name "tmpxft_00001c49_00000000-2_main.fatbin.c" -tused -nvvmir-library "/usr/local/cuda/bin/../nvvm/libdevice/libdevice.10.bc" --gen_module_id_file --module_id_file_name "/tmp/tmpxft_00001c49_00000000-3_main.module_id" --orig_src_file_name "main.cu" --gen_c_file_name "/tmp/tmpxft_00001c49_00000000-5_main.cudafe1.c" --stub_file_name "/tmp/tmpxft_00001c49_00000000-5_main.cudafe1.stub.c" --gen_device_file_name "/tmp/tmpxft_00001c49_00000000-5_main.cudafe1.gpu"  "/tmp/tmpxft_00001c49_00000000-12_main.cpp1.ii" -o "/tmp/tmpxft_00001c49_00000000-5_main.ptx"
+#$ ptxas -arch=sm_61 -m64  "/tmp/tmpxft_00001c49_00000000-5_main.ptx"  -o "/tmp/tmpxft_00001c49_00000000-13_main.sm_61.cubin"
+#$ fatbinary -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " "--image3=kind=elf,sm=61,file=/tmp/tmpxft_00001c49_00000000-13_main.sm_61.cubin" "--image3=kind=ptx,sm=61,file=/tmp/tmpxft_00001c49_00000000-5_main.ptx" --embedded-fatbin="/tmp/tmpxft_00001c49_00000000-2_main.fatbin.c"
+#$ rm /tmp/tmpxft_00001c49_00000000-2_main.fatbin
+#$ gcc -std=c++11 -E -x c++ -D__CUDACC__ -D__NVCC__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -include "cuda_runtime.h" -m64 "main.cu" -o "/tmp/tmpxft_00001c49_00000000-4_main.cpp4.ii"
+#$ cudafe++ --c++11 --gnu_version=70500 --allow_managed  --m64 --parse_templates --gen_c_file_name "/tmp/tmpxft_00001c49_00000000-5_main.cudafe1.cpp" --stub_file_name "tmpxft_00001c49_00000000-5_main.cudafe1.stub.c" --module_id_file_name "/tmp/tmpxft_00001c49_00000000-3_main.module_id" "/tmp/tmpxft_00001c49_00000000-4_main.cpp4.ii"
+#$ gcc -std=c++11 -D__CUDA_ARCH__=610 -c -x c++  -DCUDA_DOUBLE_MATH_FUNCTIONS -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"   -m64 "/tmp/tmpxft_00001c49_00000000-5_main.cudafe1.cpp" -o "/tmp/tmpxft_00001c49_00000000-14_main.o"
+#$ gcc -std=c++11 -c -x c++ -D__NVCC__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -m64 "kernel.cpp" -o "/tmp/tmpxft_00001c49_00000000-15_kernel.o"
+#$ gcc -std=c++11 -D__CUDA_ARCH__=610 -E -x c++  -DCUDA_DOUBLE_MATH_FUNCTIONS -D__CUDACC__ -D__NVCC__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -include "cuda_runtime.h" -m64 "kernel.cu" -o "/tmp/tmpxft_00001c49_00000000-16_kernel.cpp1.ii"
+#$ cicc --c++11 --gnu_version=70500 --allow_managed   -arch compute_61 -m64 -ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 --include_file_name "tmpxft_00001c49_00000000-6_kernel.fatbin.c" -tused -nvvmir-library "/usr/local/cuda/bin/../nvvm/libdevice/libdevice.10.bc" --gen_module_id_file --module_id_file_name "/tmp/tmpxft_00001c49_00000000-7_kernel.module_id" --orig_src_file_name "kernel.cu" --gen_c_file_name "/tmp/tmpxft_00001c49_00000000-9_kernel.cudafe1.c" --stub_file_name "/tmp/tmpxft_00001c49_00000000-9_kernel.cudafe1.stub.c" --gen_device_file_name "/tmp/tmpxft_00001c49_00000000-9_kernel.cudafe1.gpu"  "/tmp/tmpxft_00001c49_00000000-16_kernel.cpp1.ii" -o "/tmp/tmpxft_00001c49_00000000-9_kernel.ptx"
+#$ ptxas -arch=sm_61 -m64  "/tmp/tmpxft_00001c49_00000000-9_kernel.ptx"  -o "/tmp/tmpxft_00001c49_00000000-17_kernel.sm_61.cubin"
+#$ fatbinary -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " "--image3=kind=elf,sm=61,file=/tmp/tmpxft_00001c49_00000000-17_kernel.sm_61.cubin" "--image3=kind=ptx,sm=61,file=/tmp/tmpxft_00001c49_00000000-9_kernel.ptx" --embedded-fatbin="/tmp/tmpxft_00001c49_00000000-6_kernel.fatbin.c"
+#$ rm /tmp/tmpxft_00001c49_00000000-6_kernel.fatbin
+#$ gcc -std=c++11 -E -x c++ -D__CUDACC__ -D__NVCC__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -include "cuda_runtime.h" -m64 "kernel.cu" -o "/tmp/tmpxft_00001c49_00000000-8_kernel.cpp4.ii"
+#$ cudafe++ --c++11 --gnu_version=70500 --allow_managed  --m64 --parse_templates --gen_c_file_name "/tmp/tmpxft_00001c49_00000000-9_kernel.cudafe1.cpp" --stub_file_name "tmpxft_00001c49_00000000-9_kernel.cudafe1.stub.c" --module_id_file_name "/tmp/tmpxft_00001c49_00000000-7_kernel.module_id" "/tmp/tmpxft_00001c49_00000000-8_kernel.cpp4.ii"
+#$ gcc -std=c++11 -D__CUDA_ARCH__=610 -c -x c++  -DCUDA_DOUBLE_MATH_FUNCTIONS -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"   -m64 "/tmp/tmpxft_00001c49_00000000-9_kernel.cudafe1.cpp" -o "/tmp/tmpxft_00001c49_00000000-18_kernel.o"
+#$ nvlink --arch=sm_61 --register-link-binaries="/tmp/tmpxft_00001c49_00000000-10_bfs_dlink.reg.c"  -m64 -L"/usr/lib/" -L"/usr/local/cuda/lib64" -lm   "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib/stubs" "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib" -cpu-arch=X86_64 "/tmp/tmpxft_00001c49_00000000-14_main.o" "/tmp/tmpxft_00001c49_00000000-15_kernel.o" "/tmp/tmpxft_00001c49_00000000-18_kernel.o"  -lcudadevrt  -o "/tmp/tmpxft_00001c49_00000000-19_bfs_dlink.sm_61.cubin"
+#$ fatbinary -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " -link "--image3=kind=elf,sm=61,file=/tmp/tmpxft_00001c49_00000000-19_bfs_dlink.sm_61.cubin" --embedded-fatbin="/tmp/tmpxft_00001c49_00000000-11_bfs_dlink.fatbin.c"
+#$ rm /tmp/tmpxft_00001c49_00000000-11_bfs_dlink.fatbin
+#$ gcc -std=c++11 -c -x c++ -DFATBINFILE="\"/tmp/tmpxft_00001c49_00000000-11_bfs_dlink.fatbin.c\"" -DREGISTERLINKBINARYFILE="\"/tmp/tmpxft_00001c49_00000000-10_bfs_dlink.reg.c\"" -I. -D__NV_EXTRA_INITIALIZATION= -D__NV_EXTRA_FINALIZATION= -D__CUDA_INCLUDE_COMPILER_INTERNAL_HEADERS__  -I"/usr/local/cuda/include" "-I/usr/local/cuda/bin/../targets/x86_64-linux/include"    -D__CUDACC_VER_MAJOR__=10 -D__CUDACC_VER_MINOR__=2 -D__CUDACC_VER_BUILD__=89 -m64 "/usr/local/cuda/bin/crt/link.stub" -o "/tmp/tmpxft_00001c49_00000000-20_bfs_dlink.o"
+#$ g++ -m64 -std=c++11 -Wl,--start-group "/tmp/tmpxft_00001c49_00000000-20_bfs_dlink.o" "/tmp/tmpxft_00001c49_00000000-14_main.o" "/tmp/tmpxft_00001c49_00000000-15_kernel.o" "/tmp/tmpxft_00001c49_00000000-18_kernel.o" -L"/usr/lib/" -L"/usr/local/cuda/lib64" -lm   "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib/stubs" "-L/usr/local/cuda/bin/../targets/x86_64-linux/lib"  -lcudadevrt  -lcudart_static  -lrt -lpthread  -ldl  -Wl,--end-group -o "bfs"
+
