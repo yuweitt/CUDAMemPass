@@ -1,86 +1,43 @@
 all: main
 
-# flag
-DEBUG = -g -v
-OPTAPP = -O0
-OPT = -O2 -std=c++11
-CFLAGS = --cuda-gpu-arch=sm_61 -L /usr/local/cuda/lib64/ -lcudart_static -ldl -lrt -pthread -std=c++11
-# GC = g++ -std=c++11 #for unordered_map
-
-# path
-SM =sm_61
-CP =compute_61
-LLVM = /home/yuweitt/llvm-project/
-PASS =$(LLVM)/build/lib/CUDAMemPass.so
-UPATH =$(LLVM)/llvm/lib/Transforms/CUDAMem/
-
-
-CU = kernel.cu
-CPP = kernel.cpp
-SRC = main.cu
+SRC = main.cpp
 EXE = main
 
-AUXOBJ = kernel-cpu.o 
+CXX = "/home/yuweitt/llvm-project/build/bin/clang-10"
+PTX = "/usr/local/cuda-10.2/bin/ptxas"
+LD = "/usr/bin/ld"
 
 
-# ansf.bc :  $(ANSF) $(UPATH)/../common.h  $(UPATH)/types.h
-# 	clang++ $(DEBUG) $(OPT) -c --cuda-device-only -emit-llvm $(ANSF) -o ansf.bc
+kernel.cpp.o: kernel.cpp
+	$(CXX) -cc1 -triple x86_64-unknown-linux-gnu -target-sdk-version=10.1 -aux-triple nvptx64-nvidia-cuda -emit-obj -mrelax-all -disable-free -disable-llvm-verifier -discard-value-names -main-file-name kernel.cpp -mrelocation-model static -mthread-model posix -mframe-pointer=all -fmath-errno -fno-rounding-math -masm-verbose -mconstructor-aliases -munwind-tables -target-cpu x86-64 -dwarf-column-info -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0 -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers -internal-isystem /usr/local/cuda-10.2/include -include __clang_cuda_runtime_wrapper.h -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/yuweitt/chai/CUDA-U/BS -ferror-limit 19 -fmessage-length 0 -pthread -fgnuc-version=4.2.1 -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -faddrsig -o kernel.cpp.o -x c++ kernel.cpp
 
-# host side
-host.cui: $(SRC)
-	clang++ $(DEBUG) $(OPTAPP) $(CFLAGS) -E --cuda-host-only $(SRC) -o host.cui
-	clang++ $(DEBUG) $(OPTAPP) $(CFLAGS) -c --cuda-host-only -emit-llvm $(SRC) -o host.clean.bc
-	clang++ $(DEBUG) $(OPTAPP) $(CFLAGS) -c -S --cuda-host-only -emit-llvm $(SRC) -o host.clean.ll
+kernel.cu.s: kernel.cu
+	$(CXX) -cc1 -triple nvptx64-nvidia-cuda -aux-triple x86_64-unknown-linux-gnu -S -disable-free -disable-llvm-verifier -discard-value-names -main-file-name kernel.cu -mrelocation-model static -mthread-model posix -mframe-pointer=all -fno-rounding-math -no-integrated-as -fcuda-is-device -mlink-builtin-bitcode /usr/local/cuda-10.2/nvvm/libdevice/libdevice.10.bc -target-feature +ptx64 -target-sdk-version=10.1 -target-cpu sm_61 -dwarf-column-info -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0 -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers -internal-isystem /usr/local/cuda-10.2/include -include __clang_cuda_runtime_wrapper.h -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -std=c++11 -fdeprecated-macro -fno-dwarf-directory-asm -fno-autolink -fdebug-compilation-dir /home/yuweitt/chai/CUDA-U/BS -ferror-limit 19 -fmessage-length 0 -pthread -fgnuc-version=4.2.1 -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -o kernel.cu.s -x cuda kernel.cu
 
-# Device side bitcode
-device.clean.bc:  $(SRC)
-	clang++ $(DEBUG) $(OPTAPP) $(CFLAGS) -c --cuda-device-only -emit-llvm $(SRC) -o device.clean.bc
+kernel.cutmp.o: kernel.cu.s
+	$(PTX) -m64 -O0 -v --gpu-name sm_61 --output-file kernel.cutmp.o kernel.cu.s
 
-kernel-cu.bc: kernel.cu
-	clang++ $(DEBUG) $(OPT) -c --cuda-gpu-arch=sm_61 --cuda-device-only -emit-llvm kernel.cu -o kernel-cu.bc
+kernel.cu.fatbin: kernel.cutmp.o
+	fatbinary -64 --create kernel.cu.fatbin --image=profile=sm_61,file=kernel.cutmp.o --image=profile=compute_61,file=kernel.cu.s
 
-# Link two bitcode
-device-link.bc: kernel-cu.bc device.clean.bc
-	llvm-link kernel-cu.bc device.clean.bc -o=device-link.bc
+kernel.cu.o: kernel.cu kernel.cu.fatbin
+	$(CXX) -cc1 -triple x86_64-unknown-linux-gnu -target-sdk-version=10.1 -aux-triple nvptx64-nvidia-cuda -emit-obj -mrelax-all -disable-free -disable-llvm-verifier -discard-value-names -main-file-name kernel.cu -mrelocation-model static -mthread-model posix -mframe-pointer=all -fmath-errno -fno-rounding-math -masm-verbose -mconstructor-aliases -munwind-tables -target-cpu x86-64 -dwarf-column-info -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0 -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers -internal-isystem /usr/local/cuda-10.2/include -include __clang_cuda_runtime_wrapper.h -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/yuweitt/chai/CUDA-U/BS -ferror-limit 19 -fmessage-length 0 -pthread -fgnuc-version=4.2.1 -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -fcuda-include-gpubinary kernel.cu.fatbin -faddrsig -o kernel.cu.o -x cuda kernel.cu
 
-# Generate ptx code
-device.ptx: device-link.bc
-	llc  -march=nvptx64 -mcpu=sm_61 -mattr=+ptx64 device-link.bc -o device.ptx
-#	llc  -march=nvptx64 -mcpu=sm_61 -mattr=+ptx64 device.clean.bc -filetype=asm -o device.ptx
+main.bc: main.cpp
+	$(CXX) -cc1 -triple x86_64-unknown-linux-gnu -target-sdk-version=10.1 -aux-triple nvptx64-nvidia-cuda -emit-llvm-bc -mrelax-all -disable-free -disable-llvm-verifier -discard-value-names -main-file-name main.cpp -mrelocation-model static -mthread-model posix -mframe-pointer=all -fmath-errno -fno-rounding-math -masm-verbose -mconstructor-aliases -munwind-tables -target-cpu x86-64 -dwarf-column-info -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0 -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers -internal-isystem /usr/local/cuda-10.2/include -include __clang_cuda_runtime_wrapper.h -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/yuweitt/chai/CUDA-U/BS -ferror-limit 19 -fmessage-length 0 -pthread -fgnuc-version=4.2.1 -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -faddrsig -o main.bc -x c++ main.cpp
 
-# Generate object file from ptx code
-device.o :  device.ptx
-	ptxas --gpu-name $(SM) device.ptx -o device.o
+main.ll: main.bc
+	llvm-dis main.bc -o main.ll
 
-# Generate fatbin from device object file and host cui file
-device.fatbin: device.o host.cui 
-	fatbinary --cuda -64 --create device.fatbin --image=profile=$(SM),file=device.o --image=profile=$(CP),file=device.ptx -link
+# opt
 
-# Generate cpu kernel object file
-kernel-cpu.o: kernel.cpp
-# clang++ -c -lcudart_static --cuda-gpu-arch=sm_61 -L /usr/local/cuda/lib64/ kernel.cpp -o kernel-cpu.o
-	nvcc -c -std=c++11 -arch=sm_61 -L/usr/lib/ -L/usr/local/cuda/lib64 -lm -I/usr/local/cuda/include kernel.cpp -o kernel-cpu.o
+main.o: main.bc
+	$(CXX) main.bc -c -o main.o
 
-
-# kernel-cu.fatbin: kernel.cu
-# 	nvcc --fatbin -std=c++11 -arch=sm_61 -L/usr/lib/ -L/usr/local/cuda/lib64 -lm -I/usr/local/cuda/include kernel.cu -o kernel-cu.fatbin
-
-
-
-host.bc: device.fatbin host.cui
-	clang -cc1 -std=c++11 -triple x86_64-unknown-linux-gnu -target-sdk-version=10.1 -aux-triple nvptx64-nvidia-cuda  -emit-llvm-bc -emit-llvm-uselists -mrelax-all -disable-free -disable-llvm-verifier -discard-value-names -main-file-name um.cu -mrelocation-model static -mthread-model posix -mframe-pointer=all -fmath-errno -fno-rounding-math -masm-verbose -mconstructor-aliases -munwind-tables -target-cpu x86-64 -dwarf-column-info -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0 -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers -internal-isystem /usr/local/cuda-10.2/include -include __clang_cuda_runtime_wrapper.h -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/x86_64-linux-gnu/c++/7.5.0 -internal-isystem /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../../include/c++/7.5.0/backward -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -internal-isystem /usr/local/include -internal-isystem /home/yuweitt/llvm-project/build/lib/clang/10.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdeprecated-macro -fdebug-compilation-dir /home/yuweitt/cuda/um -ferror-limit 19 -fmessage-length 0 -pthread -fgnuc-version=4.2.1 -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -fcuda-include-gpubinary device.fatbin -faddrsig -o host.bc -x cuda main.cu
-# clang -cc1 -triple x86_64-unknown-linux-gnu -target-sdk-version=10.1 -aux-triple -main-file-name um.cu -mrelocation-model static -mthread-model posix -mframe-pointer=all -fmath-errno -fno-rounding-math -masm-verbose -mconstructor-aliases -munwind-tables -target-cpu x86-64 -dwarf-column-info -fno-split-dwarf-inlining -resource-dir /home/yuweitt/llvm-project/build/lib/clang/10.0.0  nvptx64-nvidia-cuda -emit-llvm-bc -emit-llvm-uselists -disable-free -main-file-name $(SRC) -mrelocation-model static -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -munwind-tables -fuse-init-array -target-cpu x86-64 -v -dwarf-column-info -debug-info-kind=limited -dwarf-version=4 -debugger-tuning=gdb -resource-dir $(LLVM)/build/lib/clang/10.0.0 $(OPT) -fdeprecated-macro -ferror-limit 19 -fmessage-length 0 -pthread -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -disable-llvm-passes -fcuda-include-gpubinary device.fatbin -o host.bc -x cuda um.cu	
-#-x cuda-cpp-output host.cui
-# -mdisable-fp-elim 
-hosti.bc: host.bc  $(PASS)
-	opt -load $(PASS) -cudamem  host.bc -o hosti.bc
-#	opt -load lib/CUDAMemPass.so -cudamem < ~/cuda/um/um.ll > /dev/null
-
-hosti.o: hosti.bc
-	clang++ hosti.bc -c
-
-main: hosti.o kernel-cpu.o
-	clang++ $(DEBUG) $(AUXOBJ) hosti.o -o $(EXE) -L /usr/local/cuda/lib64/ -lcudart_static -ldl -lcuda -lrt -pthread -lcudart
+main: kernel.cpp.o kernel.cu.o main.o
+	$(LD) -z relro --hash-style=gnu --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o main /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crt1.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtbegin.o -L/usr/local/cuda/lib64/ -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../.. -L/home/yuweitt/llvm-project/build/bin/../lib -L/lib -L/usr/lib kernel.cpp.o kernel.cu.o main.o -lcudart_static -ldl -lrt -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtend.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crtn.o
 
 clean:
-	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll
+	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll main
+
+
