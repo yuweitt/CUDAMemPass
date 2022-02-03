@@ -36,13 +36,14 @@ using namespace llvm;
 
 // User dfeined variable to specify distance from main
 static cl::opt<unsigned>
-  BasicBlockCount(
+  PrefetchDistance(
     "cnt", cl::desc("Specify Basic Block Count"), cl::value_desc("BB Count")
   );
 
 namespace {
   struct cudaMem : public FunctionPass {
     int num_of_malloc_managed;
+    unsigned int bbFromBegin;
     static char ID;
     bool isInit;
     static string kernelName;
@@ -52,6 +53,7 @@ namespace {
     cudaMem() : FunctionPass(ID) {
       isInit = false;
       num_of_malloc_managed = 0;
+      bbFromBegin = 0;
     }
 
 
@@ -122,13 +124,21 @@ namespace {
         }
       }
 
-      errs() << "\t Basic Block Count : " << BasicBlockCount << "\n";
+      errs() << "\t Basic Block Count : " << PrefetchDistance << "\n";
+      errs() << "\t Basic Block From Begin : " << bbFromBegin << "\n";
+
+      // Check if 
+      if(PrefetchDistance > bbFromBegin)
+        PrefetchDistance = bbFromBegin -1;
+      else if(PrefetchDistance < 1)
+        PrefetchDistance = 1;
 
       // Determine which basic block to insert prefetch instruction
-      int cnt = 0;
+      unsigned int cnt = 0;
       Instruction *InsertionPoint;
       for(auto bb = func->begin() ; bb != func->end() ; bb++) {
-        if(cnt >= BasicBlockCount) {
+        if(cnt >= (bbFromBegin - PrefetchDistance)) {
+        // if(cnt >= 5){
           InsertionPoint = &(*bb->begin());
           break;
         }
@@ -185,15 +195,13 @@ namespace {
     }
 
     virtual bool runOnFunction(Function &F) override {
-      LLVMContext& context = F.getContext();
-      Module *module = F.getParent();
+      // LLVMContext& context = F.getContext();
+      // Module *module = F.getParent();
+      bbFromBegin = 0;
       for (BasicBlock &BB : F) {
-        // BasicBlock *cur = BB;
         for (Instruction &inst : BB) {
           // if (dyn_cast<CallInst>(&inst) || dyn_cast<InvokeInst>(&inst)) {
           if(inst.getOpcode() == Instruction::Call || inst.getOpcode() == Instruction::Invoke) { 
-            // Instruction* I = &(inst);
-            // errs() << "\n callinst => " << inst.getOpcodeName() << "\n";
             if (isa<InvokeInst>(&inst)) {
               auto call_inst = dyn_cast<InvokeInst>(&(inst));
               Function* func = call_inst->getCalledFunction();
@@ -207,6 +215,7 @@ namespace {
             }
           }
         }
+        bbFromBegin += 1;
       }
       return false;
     }
