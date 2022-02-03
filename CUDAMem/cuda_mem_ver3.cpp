@@ -17,7 +17,6 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 
 #include <llvm/Support/raw_ostream.h>
-#include "llvm/Support/CommandLine.h" 
 
 #include <llvm/CodeGen/RegAllocRegistry.h>
 
@@ -33,13 +32,6 @@
 using namespace std;
 using namespace llvm;
 
-
-// User dfeined variable to specify distance from main
-static cl::opt<unsigned>
-  BasicBlockCount(
-    "cnt", cl::desc("Specify Basic Block Count"), cl::value_desc("BB Count")
-  );
-
 namespace {
   struct cudaMem : public FunctionPass {
     int num_of_malloc_managed;
@@ -53,8 +45,6 @@ namespace {
       isInit = false;
       num_of_malloc_managed = 0;
     }
-
-
 
     // void collectKernels(Module *module) {
     //   // bool kernel_found = false;
@@ -108,11 +98,23 @@ namespace {
     //   }
     // }
 
-    void insertPrefetchBB(Function *func, Instruction *inst) {
+
+    // Progress : There must be some strange connection between module and get value operand
+    // void insertChannelInitBlock(Function *func, Value *prefetch_val, Instruction *load_instruction, Instruction* inst) {
+    // void insertChannelInitBlock(Function* func){
+    void insertChannelInitBlock(Function *func, Instruction *inst) {
       Module* module = func->getParent();
       LLVMContext& context = func->getContext();
+
+      // Instruction *first_inst = &(*(inst_begin(func)));
+      // IRBuilder <> builder(first_inst);
+
       Function* cuda_prefetch_func = NULL;
       for (auto mod_func = module->begin(); mod_func != module->end(); mod_func++) {
+        // if(mod_func->getName().str() != "")
+        // if (mod_func->getName().str().find("cudaMallocManaged") != string::npos) {
+        //   errs() << "\t" << mod_func->getName().str() << "\n";
+        // }
         if (mod_func->getName().str().find(cudaPrefetchName) != string::npos) {
             // if(mod_func->isDeclaration())
               // errs() << "\t cudaMemPrefetchAsync Delcaration Found !!" << "\n";
@@ -121,20 +123,17 @@ namespace {
             break;
         }
       }
-
-      errs() << "\t Basic Block Count : " << BasicBlockCount << "\n";
-
-      // Determine which basic block to insert prefetch instruction
       int cnt = 0;
       Instruction *InsertionPoint;
       for(auto bb = func->begin() ; bb != func->end() ; bb++) {
-        if(cnt >= BasicBlockCount) {
+        if(cnt >= 4) {
           InsertionPoint = &(*bb->begin());
           break;
         }
         cnt++;
       }
       IRBuilder <> builder(InsertionPoint);
+
 
       // errs() << "\t Found cudaLaunchKernel : " << val << "\n";
       
@@ -144,17 +143,35 @@ namespace {
         errs() << "\t Operand Numbers : " << (inst)->getNumOperands() << "\n";
       }
 
-      // Get prefetch value from kernel launch instruction
-      // Clone the "load prefetch value" instruction
       int prefetchOprandIndex = 9;
-      Value* _PrefetchVal;
-      _PrefetchVal = cast<InvokeInst>(inst)->getArgOperand(prefetchOprandIndex);
-      auto *LoadInst = dyn_cast<llvm::Instruction>(_PrefetchVal);
+      Value* PrefetchVal;
+      PrefetchVal = cast<InvokeInst>(inst)->getArgOperand(prefetchOprandIndex);
+      auto *LoadInst = dyn_cast<llvm::Instruction>(PrefetchVal);
       if(nullptr != LoadInst) {
         errs() << "\t Operand Numbers : " << LoadInst->getNumOperands() << "\n";
       }
-      auto *NewInst = LoadInst->clone();
 
+      Value* LoadVal = cast<CallInst>(LoadInst)->getArgOperand(0);
+      auto *LdInst = dyn_cast<llvm::Instruction>(LoadVal);
+      
+      if(nullptr != LdInst) {
+        errs() << "\t Operand Numbers : " << LdInst->getNumOperands() << "\n";
+      }
+      auto *NewInst = LdInst->clone();
+
+      // assert(cuda_prefetch_func);
+      // int bb_count = 0;
+      // BasicBlock *insertion;
+      // for(auto &BB : *func) {
+      //   if(bb_count > 3) {
+      //     insertion = &BB;
+      //     break;
+      //   }
+      // }
+
+      // Function *f = insertion->getParent();
+      // errs() << "BB parent function Name : "<<f->getName().str() << "\n";
+      // IRBuilder<> builder(&(*insertion));
       // %9 = alloca float*, align 8
       // %16 = bitcast float** %9 to i8**
       // %20 = load i8*, i8** %16, align 8, !tbaa !7
@@ -170,16 +187,15 @@ namespace {
       ConstantInt* alloca_size = ConstantInt::get(int_type64, 4096, false);
       ConstantPointerNull* CU_stream_null =  ConstantPointerNull::get(PointerType::get(CUstream_struct, 0));
       
-      // Prefetch value
-      Value* PrefetchVal = dyn_cast<Value>(NewInst);
-      
-      // Insert Bitcast instruction
-      Value* ir_ptr = builder.CreateBitCast(PrefetchVal, Type::getInt8PtrTy(context));
+      Value* pVal = dyn_cast<Value>(NewInst);
+      // Value* ir_ptr = builder.CreateBitCast(PrefetchVal, Type::getInt8PtrTy(context));
+      Value* ir_ptr = builder.CreateBitCast(NewInst, Type::getInt8PtrTy(context));
       NewInst->insertBefore(dyn_cast<llvm::Instruction>(ir_ptr));
 
       Value* args[] = { ir_ptr, alloca_size, device_id, CU_stream_null};
 
-      // Insert CudaMemPrefetchAsync instruction
+      // builder.CreateAlloca(int_type32, 0, "counter_alloca");
+
       CallInst *MI = builder.CreateCall(cuda_prefetch_func, args);
       errs() << "\t Done Inserting cuda prefetch : " << MI->getName().str() << " instruction. \n";
     }
@@ -187,6 +203,7 @@ namespace {
     virtual bool runOnFunction(Function &F) override {
       LLVMContext& context = F.getContext();
       Module *module = F.getParent();
+      std::string str;
       for (BasicBlock &BB : F) {
         // BasicBlock *cur = BB;
         for (Instruction &inst : BB) {
@@ -201,13 +218,23 @@ namespace {
                 StringRef fname = func->getName();
                 if(fname == kernelName) {
                   // Entry function is "main" function
-                  insertPrefetchBB(&F, &inst);
+                  insertChannelInitBlock(&F, &inst);
                 }
               }
             }
           }
         }
       }
+      // if(!isInit) {
+      //   // collectKernels(module);
+      //   // countManagedMalloc(module);
+      //   isInit = true;
+      //   for(auto mod_func = module->begin() ; mod_func != module->end() ; mod_func++) {
+      //     if( mod_func->getName().str() == "main") {
+      //       // insertChannelInitBlock(&(*mod_func), &(*val));
+      //     }
+      //   }
+      // }
       return false;
     }
   }; // end of struct cudaMem
