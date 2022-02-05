@@ -34,10 +34,11 @@ main.ll: main.bc
 main.o: main.bc
 	$(CXX) main.bc -c -o main.o
 
-main: kernel.cpp.o kernel.cu.o main.o
+main: kernel.cpp.o kernel.cu.o main.o main.ll
 	$(LD) -z relro --hash-style=gnu --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o main /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crt1.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtbegin.o -L/usr/local/cuda/lib64/ -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../.. -L/home/yuweitt/llvm-project/build/bin/../lib -L/lib -L/usr/lib kernel.cpp.o kernel.cu.o main.o -lcudart_static -ldl -lrt -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtend.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crtn.o
 
 clean:
 	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll main
+	rm ~/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers/new
 
 
