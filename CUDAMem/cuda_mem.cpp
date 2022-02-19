@@ -37,8 +37,12 @@ using namespace llvm;
 // User dfeined variable to specify distance from main
 static cl::opt<unsigned>
   PrefetchDistance(
-    "cnt", cl::desc("Specify Basic Block Count"), cl::value_desc("BB Count")
+    "cnt", cl::desc("Specify Prefetch Distance"), cl::value_desc("Prefetch Distance")
   );
+static cl::opt<unsigned>
+PrefetchSize(
+  "size", cl::desc("Specify Prefetch Size"), cl::value_desc("Prefetch Size")
+);
 
 namespace {
   struct cudaMem : public FunctionPass {
@@ -50,66 +54,56 @@ namespace {
     static string cudaMallocManagedName;
     static string cudaPrefetchName;
     static string cudaLaunchKernelName;
+    static string cudaMemAdviseName;
     cudaMem() : FunctionPass(ID) {
       isInit = false;
       num_of_malloc_managed = 0;
       bbFromBegin = 0;
     }
+    void insertCudaAdvise(Function *func, Instruction *inst) {
+      Module* module = func->getParent();
+      LLVMContext& context = func->getContext();
+      BasicBlock* kernelBB = inst->getParent();
+      Function* cuda_advise_func = NULL;
 
+      for (auto mod_func = module->begin(); mod_func != module->end(); mod_func++) {
+        if (mod_func->getName().str().find(cudaMemAdviseName) != string::npos) {
+            // if(mod_func->isDeclaration())
+              // errs() << "\t cudaMemPrefetchAsync Delcaration Found !!" << "\n";
+              errs() << "\t Definition Found !! : " << cudaMemAdviseName << "\n";
+            cuda_advise_func = &(*mod_func);
+            break;
+        }
+      }
 
+      IRBuilder <> builder(inst);
+      
+      int prefetchOprandIndex = 9;
+      Value* _PrefetchVal;
+      _PrefetchVal = cast<InvokeInst>(inst)->getArgOperand(prefetchOprandIndex);
+      auto *LoadInst = dyn_cast<llvm::Instruction>(_PrefetchVal);
+      if(nullptr != LoadInst) {
+        errs() << "\t Operand Numbers : " << LoadInst->getNumOperands() << "\n";
+      }
+      auto *NewInst = LoadInst->clone();
 
-    // void collectKernels(Module *module) {
-    //   // bool kernel_found = false;
-    //   // named_meta be a named_metadata iterator
-    //   Module::NamedMDListType &MDListNode = module->getNamedMDList();
-    //   // it : llvm::iplist<const llvm::NamedMDNode>::iterator
-    //   for(auto it = MDListNode.begin() ; it != MDListNode.end() ; it++) {
-    //     llvm::NamedMDNode *named_meta = &(*it);
-    //     for (auto op = named_meta->op_begin(); op != named_meta->op_end(); op++) {
-    //       MDNode* node = (*op);
-    //       for(auto sub_op = node->op_begin() ; sub_op != node->op_end() ; sub_op++ ) {
-    //       //   // sub_op->op_begin() {return MDOperand} llvm::MDOperand->get() {retrun Metadata}
-    //         Metadata* meta = sub_op->get();
-    //         if (!meta) continue;
-    //         MDString* meta_str = dyn_cast<MDString>(meta);
-    //         if(meta_str && meta_str->getString().str() == "kernel") {
-    //           errs() << "\t kernel found!!" << "\n";
-    //         }
-    //           // errs() << "\t Metadata Name : " << meta_str->getString().str() << "\n";
-    //       }
-    //     }
-    //   }
-    // }
+      IntegerType* int_type32 = IntegerType::get(context, 32);
+      IntegerType* int_type64 = IntegerType::get(context, 64);
+      ConstantInt* SetSize = ConstantInt::get(int_type64, PrefetchSize, false);
+      ConstantInt* AdviseType = ConstantInt::get(int_type32, 1, false);
+      ConstantInt* DeviceNum = ConstantInt::get(int_type32, 0, false);
 
-    // void countManagedMalloc(Module *module) {
-    //   for (auto func = module->begin(); func != module->end(); func++) {
-    //     // inherited from llvm::Value
-    //     if (func->getName().str().find("mem_acc_stat_table_alloc") != string::npos) 
-    //       continue;
+      Value* PrefetchVal = dyn_cast<Value>(NewInst);
+      Value* ir_ptr = builder.CreateBitCast(PrefetchVal, Type::getInt8PtrTy(context));
+      NewInst->insertBefore(dyn_cast<llvm::Instruction>(ir_ptr));
 
-    //     if (func->getName().str().find("channel_host_init") == string::npos
-    //                   && func->getName().str().find(cudaMallocManagedName) == string::npos) {
-    //       for (auto inst = inst_begin(&*func); inst != inst_end(&*func); inst++) {
-    //           if (auto call_inst = dyn_cast<CallInst>(&(*inst))) {
-    //               auto called_func = call_inst->getCalledValue();
-    //               if (called_func->getName().str().find(cudaMallocManagedName) != string::npos) {
-    //                   errs() << __func__ << ": " << called_func->getName() <<"\n";
-    //                   num_of_malloc_managed++;
-    //               }
-    //           }
-    //           else if (auto invoke_inst = dyn_cast<InvokeInst>(&*inst)) {
-    //               auto called_value = invoke_inst->getCalledOperand();
-    //               if (called_value->getName().str().find(cudaMallocManagedName) != string::npos) {
-    //                   errs() << "Invoke --- Called Value --- " << called_value->getName() << "\n";
-    //                   called_value->dump();
-    //                   num_of_malloc_managed++;
-    //               }
-    //           }
-    //       }  
-    //     }
-    //   }
-    // }
+      Value* args[] = { ir_ptr, SetSize, AdviseType, DeviceNum};
 
+      // Insert CudaMemAdvise instruction
+      CallInst *MI = builder.CreateCall(cuda_advise_func, args);
+      errs() << "\t Done Inserting cuda mem advsise : " << MI->getName().str() << " instruction. \n";
+
+    }
     void insertPrefetchBB(Function *func, Instruction *inst) {
       Module* module = func->getParent();
       LLVMContext& context = func->getContext();
@@ -177,7 +171,7 @@ namespace {
         errs() << "\t CUstream struct : " << CUstream_struct->getStructName().str() << "\n";
       
       ConstantInt* device_id = ConstantInt::get(int_type32, 0, false);
-      ConstantInt* alloca_size = ConstantInt::get(int_type64, 4096, false);
+      ConstantInt* alloca_size = ConstantInt::get(int_type64, PrefetchSize, false);
       ConstantPointerNull* CU_stream_null =  ConstantPointerNull::get(PointerType::get(CUstream_struct, 0));
       
       // Prefetch value
@@ -195,8 +189,8 @@ namespace {
     }
 
     virtual bool runOnFunction(Function &F) override {
-      // LLVMContext& context = F.getContext();
-      // Module *module = F.getParent();
+      LLVMContext& context = F.getContext();
+      Module *module = F.getParent();
       bbFromBegin = 0;
       for (BasicBlock &BB : F) {
         for (Instruction &inst : BB) {
@@ -209,6 +203,7 @@ namespace {
                 StringRef fname = func->getName();
                 if(fname == kernelName) {
                   // Entry function is "main" function
+                  insertCudaAdvise(&F, &inst);
                   insertPrefetchBB(&F, &inst);
                 }
               }
@@ -216,6 +211,35 @@ namespace {
           }
         }
         bbFromBegin += 1;
+      }
+      if(!isInit) {
+        // CudaMemPrefetch Function Declaration
+        std::vector<Type*> PrefetchFuncTy_args;
+        StructType* CUstream_struct = module->getTypeByName("struct.CUstream_st");
+        PrefetchFuncTy_args.push_back(PointerType::getInt8PtrTy(context, 0));
+        PrefetchFuncTy_args.push_back(IntegerType::getInt64Ty(context));
+        PrefetchFuncTy_args.push_back(IntegerType::getInt32Ty(context));
+        PrefetchFuncTy_args.push_back(PointerType::get(CUstream_struct, 0));
+        
+        FunctionType *PrefetchFT = FunctionType::get(IntegerType::get(context, 32), PrefetchFuncTy_args, false);
+        // StructType* CUstream_struct = module->getTypeByName("struct.CUstream_st");
+        Function *cudaPrefetchDeclaration = Function::Create(PrefetchFT, Function::ExternalLinkage, "cudaMemPrefetchAsync", module);
+        cudaPrefetchDeclaration->setDSOLocal(true);
+        errs() << "\t Insert cuda Prefetch Declaration! " << "\n";
+
+        // cudaMemAdvise Function Declaration
+        std::vector<Type*> AdviseFuncTy_args;
+        AdviseFuncTy_args.push_back(PointerType::getInt8PtrTy(context, 0));
+        AdviseFuncTy_args.push_back(IntegerType::getInt64Ty(context));
+        AdviseFuncTy_args.push_back(IntegerType::getInt32Ty(context));
+        AdviseFuncTy_args.push_back(IntegerType::getInt32Ty(context));
+
+        FunctionType *AdviseFT = FunctionType::get(IntegerType::get(context, 32), AdviseFuncTy_args, false);
+        Function *cudaMemAdviseDelaration = Function::Create(AdviseFT, Function::ExternalLinkage, "cudaMemAdvise", module);
+        cudaMemAdviseDelaration->setDSOLocal(true);
+        errs() << "\t Insert cuda Mem Advise! " << "\n";
+
+        isInit = true;
       }
       return false;
     }
@@ -227,6 +251,7 @@ char cudaMem::ID = 0;
 string cudaMem::kernelName = "_Z19call_Bezier_surfaceiiifiiiiiP3XYZS0_Pi";
 string cudaMem::cudaMallocManagedName = "cudaMallocManaged";
 string cudaMem::cudaPrefetchName = "cudaMemPrefetchAsync";
+string cudaMem::cudaMemAdviseName = "cudaMemAdvise";
 string cudaMem::cudaLaunchKernelName = "cudaLaunchKernel";
 
 static RegisterPass<cudaMem> X("cudamem", "Cuda Mem Pass",
