@@ -8,9 +8,10 @@ PTX = "/usr/local/cuda-10.2/bin/ptxas"
 LD = "/usr/bin/ld"
 
 # Default Value
-CNT = 2
-SIZE = 4096
-ADVICE = 3
+DISTANCE = 20
+SIZE = 512
+ADVICE = 0
+DEVICE = 1
 
 cls:
 	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll main
@@ -36,9 +37,11 @@ main.bc: main.cpp
 main.ll: main.bc
 	llvm-dis main.bc -o main.ll
 
-main.i.bc: main.bc
-	opt -load ~/llvm-project/build/lib/CUDAMemPass.so -cudamem -cnt $(CNT) -size $(SIZE) -advice $(ADVICE) ~/chai/CUDA-U/BS/main.bc -o ~/chai/CUDA-U/BS/main.i.bc
-# opt -load ~/llvm-project/build/lib/CUDAMemPass.so -cudamem -cnt 2 ~/chai/CUDA-U/BS/main.bc -o ~/chai/CUDA-U/BS/main.i.bc
+main.i.bc: main.bc main.ll
+	opt -load ~/llvm-project/build/lib/CUDAMemPass.so -cudamem \
+	-distance $(DISTANCE) -size $(SIZE) -advice $(ADVICE) -device $(DEVICE) main.bc -o main.i.bc
+# opt -load ~/llvm-project/build/lib/CUDAMemPass.so -cudamem -distance 2 ~/chai/CUDA-U/BS/main.bc -o ~/chai/CUDA-U/BS/main.i.bc
+# opt -load ~/llvm-project/build/lib/CUDAMemPass.so -cudamem -distance 9 -size 4096 -advice 0 main.bc -o main.i.bc
 
 main.i.ll: main.i.bc
 	llvm-dis main.i.bc -o main.i.ll
@@ -50,7 +53,7 @@ main: kernel.cpp.o kernel.cu.o main.o main.ll
 	$(LD) -z relro --hash-style=gnu --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o main /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crt1.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crti.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtbegin.o -L/usr/local/cuda/lib64/ -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0 -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../.. -L/home/yuweitt/llvm-project/build/bin/../lib -L/lib -L/usr/lib kernel.cpp.o kernel.cu.o main.o -lcudart_static -ldl -lrt -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/crtend.o /usr/bin/../lib/gcc/x86_64-linux-gnu/7.5.0/../../../x86_64-linux-gnu/crtn.o
 	rm kernel.cpp.o
 clean:
-	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll main
+	rm -f *.o *.bc *.s *.ptx *.cui *.fatbin *.ll *.tmp main
 	rm ~/llvm-project/build/lib/clang/10.0.0/include/cuda_wrappers/new
 
 
