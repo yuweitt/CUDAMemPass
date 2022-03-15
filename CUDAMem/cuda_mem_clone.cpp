@@ -79,16 +79,6 @@ namespace {
     void insertPrefetchBB(Function *func, Instruction *inst) {
       Module* module = func->getParent();
       LLVMContext& context = func->getContext();
-      Function* cuda_prefetch_func = NULL;
-      for (auto mod_func = module->begin(); mod_func != module->end(); mod_func++) {
-        if (mod_func->getName().str().find(cudaPrefetchName) != string::npos) {
-            // if(mod_func->isDeclaration())
-              // errs() << "\t cudaMemPrefetchAsync Delcaration Found !!" << "\n";
-              errs() << "\t Definition Found !! : " << cudaPrefetchName << "\n";
-            cuda_prefetch_func = &(*mod_func);
-            break;
-        }
-      }
 
       StringRef fname = func->getName();
       errs() << fname << "\n";
@@ -97,18 +87,6 @@ namespace {
       Function* f = call_inst->getCalledFunction();
       StringRef fn = f->getName();
       errs() << "\t Instruction Name. - " << fn << "\n";
-
-      // cudaMemAdvise Function Definition
-      // Function* cuda_advise_func = NULL;
-      // for (auto mod_func = module->begin(); mod_func != module->end(); mod_func++) {
-      //   if (mod_func->getName().str().find(cudaMemAdviseName) != string::npos) {
-      //       // if(mod_func->isDeclaration())
-      //         // errs() << "\t cudaMemPrefetchAsync Delcaration Found !!" << "\n";
-      //         errs() << "\t Definition Found !! : " << cudaMemAdviseName << "\n";
-      //       cuda_advise_func = &(*mod_func);
-      //       break;
-      //   }
-      // }
 
       errs() << "\t Basic Block Count : " << PrefetchDistance << "\n";
       errs() << "\t Basic Block From Begin : " << bbFromBegin << "\n";
@@ -123,10 +101,6 @@ namespace {
       Instruction *InsertionPoint;
       for(auto bb = func->begin() ; bb != func->end() ; bb++) {
         if(cnt >= (bbFromBegin - PrefetchDistance)) {
-        // if(cnt >= 5){
-          // int instCount = std::distance(bb->begin(), bb->end());
-          // if(instCount <= 2)
-          //   continue;
           InsertionPoint = &(*bb->begin());
           if(InsertionPoint->getOpcode() == Instruction::LandingPad)
             continue;
@@ -148,35 +122,21 @@ namespace {
       std::vector<Instruction*> Inst2Erase;
       ValueToValueMapTy VMap;
 
+      // Clone cudaMemPrefetAsync Instruction
       Value* _pVal;
       Inst2Insert.push_back(inst->clone());
       Inst2Erase.push_back(inst);
       VMap[inst] = Inst2Insert[0];
       Inst2Insert[0]->insertAfter(InsertionPoint);
-      // InsertionPoint = Inst2Insert[0]->getNextNode();
 
       _pVal = dyn_cast<Value>(inst);
       SearchStack.push(_pVal);
 
-
-      // _pVal = cast<CallInst>(inst)->getArgOperand(prefetchOprandIndex);
-      // auto *ldInst = dyn_cast<llvm::Instruction>(_pVal);
-      // SearchStack.push(_pVal);
-      // Inst2Insert.push_back(dyn_cast<llvm::Instruction>(_pVal)->clone());
-
+      // Interative Search Instruction
       while(!SearchStack.empty()) {
         Value* _v = SearchStack.top();
         Instruction* _inst = dyn_cast<llvm::Instruction>(_v);
-        // call_inst = dyn_cast<CallInst>(_inst);
         SearchStack.pop();
-
-        // f = call_inst->getCalledFunction();
-        // fn = f->getName();
-        // errs() << "\t Instruction Name. - " << fn << "\n";
-
-
-        // int OpNum = (_inst)->getNumOperands();
-        // errs() << "\t" << OpNum << "\n";
 
         for (auto operand = _inst->operands().begin(); operand != _inst->operands().end() ; ++operand) {
           Value* _op = operand->get();
@@ -200,18 +160,8 @@ namespace {
           
           Inst2Erase.push_back(_opInst);
           Inst2Insert.push_back(_new);
-
-          // InsertionPoint = _new->getNextNode();
-
         }
       }
-
-      // for(int i = Inst2Insert.size() - 1 ; i >=0 ; i--) {
-      //   Inst2Insert[i]->insertBefore(InsertionPoint);
-      //   InsertionPoint = Inst2Insert[i]->getNextNode();
-        // VMap[&(*Inst2Erase[i])] = Inst2Insert[i];
-        // llvm::RemapInstruction(Inst2Insert[i], VMap, RF_NoModuleLevelChanges | RF_IgnoreMissingLocals);
-      // }
 
       for(int i = 0 ; i < Inst2Insert.size() ; i++) {
         RemapInstruction(Inst2Insert[i], VMap, RF_NoModuleLevelChanges | RF_IgnoreMissingLocals);
@@ -220,37 +170,11 @@ namespace {
       for(int i = 0 ; i < Inst2Erase.size() ; i++) {
         Inst2Erase[i]->eraseFromParent();
       }
-      // Instruction* ir_ptr = Inst2Insert[0];
-      // ir_ptr->insertBefore(InsertionPoint);
       // Ended
       // ********************************** //
 
-      IntegerType* int_type32 = IntegerType::get(context, 32);
-      IntegerType* int_type64 = IntegerType::get(context, 64);
-      StructType* CUstream_struct = module->getTypeByName("struct.CUstream_st");
-
-      if(CUstream_struct)
-        errs() << "\t CUstream struct : " << CUstream_struct->getStructName().str() << "\n";
-      
-      ConstantInt* device_id = ConstantInt::get(int_type32, 0, false);
-      ConstantInt* alloca_size = ConstantInt::get(int_type64, 4096, false);
-      ConstantPointerNull* CU_stream_null =  ConstantPointerNull::get(PointerType::get(CUstream_struct, 0));
-
-      Value* prefetch_args[] = { Inst2Insert[0], Inst2Insert[1], device_id, CU_stream_null};
-
-      // CallInst *PI = builder.CreateCall(cuda_prefetch_func, prefetch_args);
       errs() << "\t Done Inserting cuda prefetch instruction \n";
-      // Get prefetch value from kernel launch instruction
-      // Clone the "load prefetch value" instruction
-      // Value* _PrefetchVal;
-      // _PrefetchVal = cast<InvokeInst>(inst)->getArgOperand(prefetchOprandIndex);
-      // auto *LoadInst = dyn_cast<llvm::Instruction>(_PrefetchVal);
-      // if(nullptr != LoadInst) {
-      //   errs() << "\t Operand Numbers : " << LoadInst->getNumOperands() << "\n";
-      // }
-      
     }
-
 
     virtual bool runOnFunction(Function &F) override {
       LLVMContext& context = F.getContext();
@@ -284,12 +208,7 @@ namespace {
               if(func && F.getName() != cudaPrefetchPhi) {
                 StringRef fname = func->getName();
                 if(fname == cudaPrefetchName) {
-                // size_t found = fname.find(GaussianKernelName);
-                // if(found != string::npos){
                   errs() << "\t Found Prefetch Name. - " << fname << "\n";
-                  // Entry function is "main" function
-                  // if(AdviseOption)
-                  // insertCudaAdvise(&F, &inst);
                   insertPrefetchBB(&F, &inst);
                   isInit = true;
                   return false;
