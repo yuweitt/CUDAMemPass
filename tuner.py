@@ -12,6 +12,7 @@ import sys
 import opentuner
 import subprocess
 import re
+import datetime
 # from opentuner import ConfigurationManipulator
 # from opentuner import IntegerParameter
 # from opentuner import PowerOfTwoParameter
@@ -22,10 +23,10 @@ from opentuner import Result
 cudaVariableNum = 7 - 1
 
 ADVICE_NUM = ['advice_{}'.format(i) for i in range(0, cudaVariableNum)]
-PREFETCH_NUM = ['prefetch_{}'.format(i) for i in range(0, cudaVariableNum)]
-ADVICE_OPTION = ['cudaMemAdviseSetReadMostly', 'cudaMemAdviseSetPreferredLocation', 'cudaMemAdviseSetAccessedBy']
-print(ADVICE_NUM)
-print(PREFETCH_NUM)
+PREFETCH_SIZE = ['prefetch_{}'.format(i) for i in range(0, cudaVariableNum)]
+PREFETCH_DISTANCE = ['distance_{}'.format(i) for i in range(0, cudaVariableNum)]
+# ADVICE_OPTION = ['cudaMemAdviseSetReadMostly', 'cudaMemAdviseSetPreferredLocation', 'cudaMemAdviseSetAccessedBy']
+
 
 
 # From https://github.com/jansel/opentuner/blob/master/examples/mario/mario.py
@@ -36,6 +37,7 @@ def call_time():
             proc = subprocess.Popen(['./run'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             result = proc.stdout.read().decode('utf-8')
             time = re.findall("\d+\.\d+", result)
+            print(time[-1])
             total_execution_time += float(time[-1])
         return total_execution_time/10
     except:
@@ -51,16 +53,17 @@ class PrefetchTuner(MeasurementInterface):
         """
         m = opentuner.ConfigurationManipulator()
         for idx in ADVICE_NUM:
-            m.add_parameter(manipulator.EnumParameter(idx,['on', 'off']))
-
-        for idx in PREFETCH_NUM:
-            m.add_parameter(manipulator.EnumParameter(idx,['on', 'off']))
-        m.add_parameter(
-            manipulator.IntegerParameter('MEM_ADVICE', 0, 2))
-        m.add_parameter(
-            manipulator.IntegerParameter('PREFETCH_DISTANCE', 1, 68))
-        m.add_parameter(
-            manipulator.PowerOfTwoParameter('PREFETCH_SIZE', 4, 65536))
+            m.add_parameter(manipulator.IntegerParameter(idx, 0, 3))
+        for idx in PREFETCH_SIZE:
+            m.add_parameter(manipulator.PowerOfTwoParameter(idx,16, 65536))
+        for idx in PREFETCH_DISTANCE:
+            m.add_parameter(manipulator.IntegerParameter(idx, 0, 20))
+        # m.add_parameter(
+        #     manipulator.IntegerParameter('MEM_ADVICE', 0, 2))
+        # m.add_parameter(
+        #     manipulator.IntegerParameter('PREFETCH_DISTANCE', 1, 68))
+        # m.add_parameter(
+        #     manipulator.PowerOfTwoParameter('PREFETCH_SIZE', 4, 65536))
         return m
 
     def run(self, desired_result, input, limit):
@@ -68,20 +71,39 @@ class PrefetchTuner(MeasurementInterface):
         Compile and run a given configuration then
         return performance
         """
+        """
+        Sample python command
+        python cudaScript.py --advice_num 5_1 --prefetch_num 0_512_20
+        Which means
+        advice fifth object, using first advice option
+        prefetch zero'th object, with prefetch size 512 and prfetch distance 20
+        """
         cfg = desired_result.configuration.data
         python_cmd = 'python cudaScript.py '
-        python_cmd += '--advice_type {0} '.format(ADVICE_OPTION[cfg['MEM_ADVICE']])
-        python_cmd += '--prefetch_size {0} '.format(cfg['PREFETCH_SIZE'])
-        python_cmd += '--advice_num '
-        for idx in ADVICE_NUM:
-            if cfg[idx] == 'on':
-                num = idx[-1]
-                python_cmd += '{0} '.format(num)
-        python_cmd += '--prefetch_num '
-        for idx in PREFETCH_NUM:
-            if cfg[idx] == 'on':
-                num = idx[-1]
-                python_cmd += '{0} '.format(num)
+        # python_cmd += '--advice_type {0} '.format(ADVICE_OPTION[cfg['MEM_ADVICE']])
+        # python_cmd += '--prefetch_size {0} '.format(cfg['PREFETCH_SIZE'])
+        for item in ADVICE_NUM:
+            if cfg[item] == 0:
+                continue
+            else:
+                python_cmd += '--advice_num '
+                num = item[-1]
+                python_cmd += '{0} '.format(num + "_" + str(cfg[item]))
+        
+        for idx, item in enumerate(PREFETCH_SIZE):
+            # Don't prefetch
+            if cfg[item] == 16:
+                continue
+            else:
+                python_cmd += '--prefetch_num '
+                num = item[-1]
+                python_cmd += '{0} '.format(num + "_" + str(cfg[item]) + "_" + str(cfg[PREFETCH_DISTANCE[idx]]))
+        
+        # for idx in PREFETCH_NUM:
+        #     if cfg[idx] == 'on':
+        #         python_cmd += '--prefetch_num '
+        #         num = idx[-1]
+        #         python_cmd += '{0} '.format(num)
         print(python_cmd)
         os.system(python_cmd)
         os.system('make clean')
@@ -112,9 +134,14 @@ class PrefetchTuner(MeasurementInterface):
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""
-        print("Optimal prefetch distance to bs_final_config.json:", configuration.data)
-        self.manipulator().save_to_file(configuration.data,
-                                        'bs_final_config.json')
+        dirName = 'json/'
+        if not os.path.exists(dirName):
+            os.mkdir(dirName)
+        dt = datetime.datetime.today()
+        dt_format = dt.strftime("%Y_%m_%d_%H-%M-")
+        config_name = dirName + dt_format + 'config.json'
+        print("Optimal config save to final_config.json:", configuration.data)
+        self.manipulator().save_to_file(configuration.data, config_name)
 
 if __name__ == '__main__':
     FAIL_PENALTY   = 9999
