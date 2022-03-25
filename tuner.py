@@ -13,21 +13,19 @@ import opentuner
 import subprocess
 import re
 import datetime
-# from opentuner import ConfigurationManipulator
-# from opentuner import IntegerParameter
-# from opentuner import PowerOfTwoParameter
+import math
+import json
 from opentuner.search import manipulator
 from opentuner import MeasurementInterface
 from opentuner import Result
 
+EXE_MIN = 9999
+PY_CMD = ""
 cudaVariableNum = 7 - 1
-
 ADVICE_NUM = ['advice_{}'.format(i) for i in range(0, cudaVariableNum)]
 PREFETCH_SIZE = ['prefetch_{}'.format(i) for i in range(0, cudaVariableNum)]
 PREFETCH_DISTANCE = ['distance_{}'.format(i) for i in range(0, cudaVariableNum)]
 # ADVICE_OPTION = ['cudaMemAdviseSetReadMostly', 'cudaMemAdviseSetPreferredLocation', 'cudaMemAdviseSetAccessedBy']
-
-
 
 # From https://github.com/jansel/opentuner/blob/master/examples/mario/mario.py
 def call_time():
@@ -45,7 +43,6 @@ def call_time():
         return 9999
 
 class PrefetchTuner(MeasurementInterface):
-
     def manipulator(self):
         """
         Define the search space by creating a
@@ -55,7 +52,7 @@ class PrefetchTuner(MeasurementInterface):
         for idx in ADVICE_NUM:
             m.add_parameter(manipulator.IntegerParameter(idx, 0, 3))
         for idx in PREFETCH_SIZE:
-            m.add_parameter(manipulator.PowerOfTwoParameter(idx,16, 65536))
+            m.add_parameter(manipulator.PowerOfTwoParameter(idx, 16, 65536))
         for idx in PREFETCH_DISTANCE:
             m.add_parameter(manipulator.IntegerParameter(idx, 0, 20))
         # m.add_parameter(
@@ -70,14 +67,14 @@ class PrefetchTuner(MeasurementInterface):
         """
         Compile and run a given configuration then
         return performance
-        """
-        """
+        //////////////////////////////////////////////////////////////////////////////
         Sample python command
         python cudaScript.py --advice_num 5_1 --prefetch_num 0_512_20
         Which means
         advice fifth object, using first advice option
         prefetch zero'th object, with prefetch size 512 and prfetch distance 20
         """
+        global EXE_MIN, PY_CMD
         cfg = desired_result.configuration.data
         python_cmd = 'python cudaScript.py '
         # python_cmd += '--advice_type {0} '.format(ADVICE_OPTION[cfg['MEM_ADVICE']])
@@ -125,15 +122,17 @@ class PrefetchTuner(MeasurementInterface):
         # assert compile_result['returncode'] == 0
 
         exe_time = call_time()
+        if exe_time < EXE_MIN:
+            EXE_MIN = exe_time
+            PY_CMD = python_cmd
         print(exe_time)
         print("\t Average Execution Time: " + str(exe_time))
-        if exe_time == 9999:
-            return Result(time=FAIL_PENALTY)
         return Result(time=exe_time)
 
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""
+        global EXE_MIN, PY_CMD
         dirName = 'json/'
         if not os.path.exists(dirName):
             os.mkdir(dirName)
@@ -142,8 +141,12 @@ class PrefetchTuner(MeasurementInterface):
         config_name = dirName + dt_format + 'config.json'
         print("Optimal config save to final_config.json:", configuration.data)
         self.manipulator().save_to_file(configuration.data, config_name)
+        with open(config_name) as f:
+            data = json.load(f)
+        data.update({"exe_time":EXE_MIN, "python_cmd":PY_CMD})
+        with open(config_name, 'w+') as f:
+            json.dump(data, f)
 
 if __name__ == '__main__':
-    FAIL_PENALTY   = 9999
     argparser = opentuner.default_argparser()
     PrefetchTuner.main(argparser.parse_args())
