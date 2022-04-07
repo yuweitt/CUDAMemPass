@@ -24,7 +24,7 @@ cudaVarList = []
 cudaVarSizeList = []
 cudaVarLineNum = []
 AdviseType = ["Default", "cudaMemAdviseSetReadMostly", "cudaMemAdviseSetPreferredLocation", "cudaMemAdviseSetAccessedBy"]
-
+DEVICE = ["0", "cudaCpuDeviceId"]
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='argparse_template.py', description='CUDA Parameter') 
@@ -36,24 +36,28 @@ def parse_args():
 
 def parseAdvice():
     adviceDict = dict()
-    for item in args.advice_num:
-        advice = item.split("_")
-        adviceDict[int(advice[0])] = advice[1]
+    if args.advice_num:
+        for item in args.advice_num:
+            advice = item.split("_", 1)
+            adviceDict[int(advice[0])] = advice[1]
     return adviceDict
 
 def parsePrefetch():
     prefetchDict = {}
-    for item in args.prefetch_num:
-        prefetch = item.split("_", 1)
-        prefetchDict[int(prefetch[0])] = prefetch[1]
+    if args.prefetch_num:
+        for item in args.prefetch_num:
+            prefetch = item.split("_", 1)
+            prefetchDict[int(prefetch[0])] = prefetch[1]
     return prefetchDict
 
 def genAdviseFunc(cudaVarCount, adviceDict):
-    TypeNum = int(adviceDict[cudaVarCount])
+    advConfig = adviceDict[cudaVarCount].split("_")
+    TypeNum = int(advConfig[0])
+    DeviceNum = int(advConfig[1])
     AdviceObj = cudaVarList[cudaVarCount]
     AdviceSize = cudaVarSizeList[cudaVarCount]
     # idx = AdviceObj.find("&") + 1
-    return "\t" + cudaAdviseName + "(" + AdviceObj + ", " + str(AdviceSize) + ", " + AdviseType[TypeNum] + ", 0);\n"
+    return "\t" + cudaAdviseName + "(" + AdviceObj + ", " + str(AdviceSize) + ", " + AdviseType[TypeNum] + ", " + DEVICE[DeviceNum] + ");\n"
 
 def genPrefetchFunc(PrefetchObj, PrefetchSize):
     # idx = PrefetchObj.find("&") + 1
@@ -61,7 +65,7 @@ def genPrefetchFunc(PrefetchObj, PrefetchSize):
 
 def getPrefetchObj(line):
     start = line.find('(') + 1
-    end = line.find(')')
+    end = line.rfind(')')
     arg_line = line[start:end].replace(" ", "")
     return arg_line.split(',')
 
@@ -87,8 +91,9 @@ def getVar(line):
     return line[start:mid], line[mid+1:end]
 
 def main():
-    FileName = "bfs"
+    FileName = "srad"
     inFile = open(FileName + ".cu","r")
+    tmpFile = open(FileName + ".tmp.cu", "w+")
     outFile = open(FileName + ".inst.cu", "w+")
     lines = inFile.readlines()
 
@@ -100,19 +105,25 @@ def main():
 
     for line_number, line in enumerate(lines):
         if "cudaMalloc" in line:
-            outFile.write(line)
+            tmpFile.write(line)
             cudaVarLineNum.append(line_number)
             var, size = getVar(line)
             if adviceDict and cudaVarCount in adviceDict:
                 adviceFunc = genAdviseFunc(cudaVarCount, adviceDict)
                 print(adviceFunc)
-                outFile.write(adviceFunc)
+                tmpFile.write(adviceFunc)
             cudaVarCount += 1
             continue
-
+        tmpFile.write(line)
+    # print(cudaVarList)
+    tmpFile.close()
+    tmpFile = open(FileName + ".tmp.cu", "r")
+    lines = tmpFile.readlines()
+    for line_number, line in enumerate(lines):
         if "<<<" in line:
             kernel_line_number = line_number
             kernelObj = getPrefetchObj(line)
+            # print(kernelObj)
             prefetchFuncList = getPrefetchFuncList(kernelObj, prefetchDict)
             for pf in prefetchFuncList:
                 print(pf)
@@ -121,6 +132,7 @@ def main():
             continue
         outFile.write(line)
     inFile.close()
+    tmpFile.close()
     outFile.close()
 
 

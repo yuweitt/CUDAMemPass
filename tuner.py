@@ -22,13 +22,12 @@ from opentuner import Result
 EXE_MIN = 999999
 FILE_DATE = ""
 PY_CMD = ""
-cudaVariableNum = 3
-kernelVariableNum = 3
+cudaVariableNum = 7 - 1
 DEVICE = ["0", "cudaCpuDeviceId"]
 ADVICE_NUM = ['advice_{}'.format(i) for i in range(0, cudaVariableNum)]
 ADVICE_DEVICE = ['device_{}'.format(i) for i in range(0, cudaVariableNum)]
 PREFETCH_SIZE = ['prefetch_{}'.format(i) for i in range(0, cudaVariableNum)]
-# PREFETCH_DISTANCE = ['distance_{}'.format(i) for i in range(0, kernelVariableNum)]
+PREFETCH_DISTANCE = ['distance_{}'.format(i) for i in range(0, cudaVariableNum)]
 
 # From https://github.com/jansel/opentuner/blob/master/examples/mario/mario.py
 def call_time():
@@ -36,11 +35,12 @@ def call_time():
         total_execution_time = 0
         for i in range(0, 11):
             proc = subprocess.Popen(['./run'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            if i == 0:
-                continue
             result = proc.stdout.read().decode('utf-8')
             time = re.findall("\d+\.\d+", result)
+            print(i)
             print(time[-1])
+            if i == 0:
+                continue
             total_execution_time += float(time[-1])
         return total_execution_time/10
     except:
@@ -66,10 +66,10 @@ class PrefetchTuner(MeasurementInterface):
             m.add_parameter(manipulator.IntegerParameter(idx, 0, 1))
         for idx in ADVICE_NUM:
             m.add_parameter(manipulator.IntegerParameter(idx, 0, 3))
-        for idx in PREFETCH_SIZE:
-            m.add_parameter(manipulator.PowerOfTwoParameter(idx, 16, 65536))
+        # for idx in PREFETCH_SIZE:
+        #     m.add_parameter(manipulator.PowerOfTwoParameter(idx, 16, 65536))
         # for idx in PREFETCH_DISTANCE:
-        m.add_parameter(manipulator.IntegerParameter('PREFETCH_DISTANCE', 0, 10))
+        #     m.add_parameter(manipulator.IntegerParameter(idx, 0, 20))
         return m
 
     def run(self, desired_result, input, limit):
@@ -94,22 +94,19 @@ class PrefetchTuner(MeasurementInterface):
                 num = item[-1]
                 python_cmd += '{0} '.format(num + "_" + str(cfg[item]) + "_" + str(cfg[ADVICE_DEVICE[idx]]))
         
-        for idx, item in enumerate(PREFETCH_SIZE):
-            # Don't prefetch
-            if cfg[item] == 16:
-                continue
-            else:
-                python_cmd += ' --prefetch_num '
-                num = item[-1]
-                python_cmd += '{0} '.format(num + "_" + str(cfg[item]) + "_" + str(cfg['PREFETCH_DISTANCE']))
+        # for idx, item in enumerate(PREFETCH_SIZE):
+        #     # Don't prefetch
+        #     if cfg[item] == 16:
+        #         continue
+        #     else:
+        #         python_cmd += ' --prefetch_num '
+        #         num = item[-1]
+        #         python_cmd += '{0} '.format(num + "_" + str(cfg[item]) + "_" + str(cfg[PREFETCH_DISTANCE[idx]]))
         
         print(python_cmd)
         os.system(python_cmd)
         os.system('make clean')
-        os.system('make')        
-        # make_cmd = 'make -f CHAI_Makefile.mk DISTANCE={0}'.format(cfg['PREFETCH_DISTANCE'])
-        # os.system('make -f CHAI_Makefile.mk clean')
-        # os.system(make_cmd)
+        os.system('make')
 
         dirName = "time/"
         exeName = dirName + FILE_DATE + "time.txt"
