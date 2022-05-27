@@ -22,7 +22,10 @@ from opentuner import Result
 EXE_MIN = 999999
 FILE_DATE = ""
 PY_CMD = ""
-cudaVariableNum = 3
+TUNE_ITER = 3
+cudaVariableNum = 6
+basicBlockNum = 33
+maxPrefetchSize = 65536
 DEVICE = ["0", "cudaCpuDeviceId"]
 ADVICE_NUM = ['advice_{}'.format(i) for i in range(0, cudaVariableNum)]
 ADVICE_DEVICE = ['device_{}'.format(i) for i in range(0, cudaVariableNum)]
@@ -33,7 +36,7 @@ PREFETCH_DISTANCE = ['distance_{}'.format(i) for i in range(0, cudaVariableNum)]
 def call_time():
     try:
         total_execution_time = 0
-        for i in range(0, 11):
+        for i in range(0, TUNE_ITER + 1):
             proc = subprocess.Popen(['./run'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             result = proc.stdout.read().decode('utf-8')
             time = re.findall("\d+\.\d+", result)
@@ -42,7 +45,7 @@ def call_time():
             if i == 0:
                 continue
             total_execution_time += float(time[-1])
-        return total_execution_time/10
+        return total_execution_time/TUNE_ITER
     except:
         print("\t Failed to execute.")
         return 999999
@@ -67,8 +70,8 @@ class PrefetchTuner(MeasurementInterface):
         for idx in ADVICE_NUM:
             m.add_parameter(manipulator.IntegerParameter(idx, 0, 3))
         for idx in PREFETCH_SIZE:
-            m.add_parameter(manipulator.PowerOfTwoParameter(idx, 16, 65536))
-        m.add_parameter(manipulator.IntegerParameter('PREFETCH_DISTANCE', 0, 10))
+            m.add_parameter(manipulator.PowerOfTwoParameter(idx, 16, maxPrefetchSize))
+        m.add_parameter(manipulator.IntegerParameter('PREFETCH_DISTANCE', 0, basicBlockNum))
         return m
 
     def run(self, desired_result, input, limit):
@@ -104,11 +107,11 @@ class PrefetchTuner(MeasurementInterface):
         
         print(python_cmd)
         os.system(python_cmd)
-        # os.system('make clean')
-        # os.system('make')
-        make_cmd = 'make -f CHAI_Makefile.mk DISTANCE={0}'.format(cfg['PREFETCH_DISTANCE'])
-        os.system('make -f CHAI_Makefile.mk clean')
-        os.system(make_cmd)
+        os.system('make clean')
+        os.system('make')
+        # make_cmd = 'make -f CHAI_Makefile.mk DISTANCE={0}'.format(cfg['PREFETCH_DISTANCE'])
+        # os.system('make -f CHAI_Makefile.mk clean')
+        # os.system(make_cmd)
         
 
         dirName = "time/"

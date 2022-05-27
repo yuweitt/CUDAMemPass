@@ -11,7 +11,6 @@ import re
 import subprocess
 import datetime
 import argparse
-import matplotlib.pyplot as plt
 from collections import defaultdict
 
 cudaPrefetchName = "cudaMemPrefetchAsync"
@@ -23,7 +22,8 @@ cudaAdviseName = "cudaMemAdvise"
 cudaVarList = []
 cudaVarSizeList = []
 cudaVarLineNum = []
-AdviseType = ["Default", "cudaMemAdviseSetReadMostly", "cudaMemAdviseSetPreferredLocation", "cudaMemAdviseSetAccessedBy"]
+AdviseType = ["Default", "cudaMemAdviseSetReadMostly", "cudaMemAdviseSetPreferredLocation", "cudaMemAdviseSetAccessedBy"\
+            , "cudaMemAdviseUnsetReadMostly", "cudaMemAdviseUnsetPreferredLocation", "cudaMemAdviseUnsetAccessedBy"]
 DEVICE = ["0", "cudaCpuDeviceId"]
 
 def parse_args():
@@ -57,9 +57,13 @@ def genAdviseFunc(cudaVarCount, adviceDict):
     AdviceObj = cudaVarList[cudaVarCount]
     AdviceSize = cudaVarSizeList[cudaVarCount]
     # idx = AdviceObj.find("&") + 1
+    return genAdviseFuncName(AdviceObj, AdviceSize, TypeNum, DeviceNum)
+    
+
+def genAdviseFuncName(AdviceObj, AdviceSize, TypeNum, DeviceNum):
     return "\t" + cudaAdviseName + "(" + AdviceObj + ", " + str(AdviceSize) + ", " + AdviseType[TypeNum] + ", " + DEVICE[DeviceNum] + ");\n"
 
-def genPrefetchFunc(PrefetchObj, PrefetchSize):
+def genPrefetchFuncName(PrefetchObj, PrefetchSize):
     # idx = PrefetchObj.find("&") + 1
     return "\t" + cudaPrefetchName + "(" + PrefetchObj + ", " + str(PrefetchSize) + ", 0);\n"
 
@@ -71,21 +75,37 @@ def getPrefetchObj(line):
 
 def getPrefetchFuncList(kernelObj, prefetchDict):
     prefetchList = []
-    print(prefetchDict)
-    if prefetchDict:
-        for idx in prefetchDict:
-            pConfig = prefetchDict[idx].split("_")
-            print(pConfig)
-            prefetchList.append(genPrefetchFunc(cudaVarList[idx], pConfig[0]))
-    # for obj in kernelObj:
-    #     try:
-    #         idx = cudaVarList.index(obj)
-    #         if prefetchDict and idx in prefetchDict:
-    #             pConfig = prefetchDict[idx].split("_")
-    #             prefetchList.append(genPrefetchFunc(obj, pConfig[0]))
-    #     except:
-    #         pass
+    # print(prefetchDict)
+    # if prefetchDict:
+    #     for idx in prefetchDict:
+    #         pConfig = prefetchDict[idx].split("_")
+    #         prefetchList.append(genPrefetchFuncName(cudaVarList[idx], pConfig[0]))
+    for obj in kernelObj:
+        try:
+            idx = cudaVarList.index(obj)
+            if prefetchDict and idx in prefetchDict:
+                pConfig = prefetchDict[idx].split("_")
+                # prefetchList.append(genPrefetchFuncName(obj, cudaVarSizeList[idx]))
+                prefetchList.append(genPrefetchFuncName(obj, pConfig[0]))
+        except:
+            pass
     return prefetchList
+
+def getResetAdviceList(kernelCount, adviceDict):
+    resetList = []
+    if adviceDict:
+        for idx in adviceDict:
+            advConfig = adviceDict[idx].split("_")
+            TypeNum = int(advConfig[0])
+            DeviceNum = int(advConfig[1])
+            ResetNum = int(advConfig[2])
+            AdviceObj = cudaVarList[idx]
+            AdviceSize = cudaVarSizeList[idx]
+            if TypeNum != 0 and ResetNum == kernelCount:
+                resetList.append(genAdviseFuncName(AdviceObj, AdviceSize, TypeNum + 3, DeviceNum))
+    return resetList
+
+
 
 def getVar(line):
     line = line.replace(" ", "")
@@ -125,15 +145,20 @@ def main():
     tmpFile.close()
     tmpFile = open(FileName + ".tmp.cu", "r")
     lines = tmpFile.readlines()
+    kernel_count = 0
     for line_number, line in enumerate(lines):
         if "<<<" in line:
+            kernel_count += 1
             kernel_line_number = line_number
             kernelObj = getPrefetchObj(line)
-            # print(kernelObj)
             prefetchFuncList = getPrefetchFuncList(kernelObj, prefetchDict)
+            resetAdviceList = getResetAdviceList(kernel_count, adviceDict)
             for pf in prefetchFuncList:
                 print(pf)
                 outFile.write(pf)
+            for ra in resetAdviceList:
+                print(ra)
+                outFile.write(ra)
             outFile.write(line)
             continue
         outFile.write(line)
