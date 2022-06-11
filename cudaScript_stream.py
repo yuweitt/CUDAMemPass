@@ -63,6 +63,11 @@ def genPrefetchFunc(PrefetchObj, PrefetchSize):
     # idx = PrefetchObj.find("&") + 1
     return "\t" + cudaPrefetchName + "(" + PrefetchObj + ", " + str(PrefetchSize) + ", 0);\n"
 
+def converToStream(prefetchFunc, idx):
+    index = prefetchFunc.index(");")
+    converted = prefetchFunc[:index] + ", stream" + str(idx) + prefetchFunc[index:]
+    return converted
+
 def getPrefetchObj(line):
     start = line.find('(') + 1
     end = line.rfind(')')
@@ -82,6 +87,22 @@ def getPrefetchFuncList(kernelObj, prefetchDict):
             pass
     return prefetchList
 
+def genStreamPrefetchFuncList(prefetchList, kernel_num):
+    streamPrefetchFuncList = []
+    if len(prefetchList) < 2:
+        return prefetchList
+    for idx, item in enumerate(prefetchList):
+        if kernel_num == 1 or idx + 1 > genStreamPrefetchFuncList.curStreamNum:
+            streamPrefetchFuncList.append("\tcudaStream_t stream" + str(idx + 1) + ";\n")
+            streamPrefetchFuncList.append("\tcudaStreamCreate(&stream" + str(idx + 1) + ");\n")
+            genStreamPrefetchFuncList.curStreamNum += 1
+        streamPrefetchFuncList.append(converToStream(item, idx + 1))
+    for i in range(1, len(prefetchList)):
+        streamPrefetchFuncList.append("\tcudaStreamSynchronize(stream" + str(i) + ");\n")
+    return streamPrefetchFuncList
+
+
+
 def getVar(line):
     line = line.replace(" ", "")
     start = line.find('&') + 1
@@ -92,7 +113,7 @@ def getVar(line):
     return line[start:mid], line[mid+1:end]
 
 def main():
-    FileName = "srad"
+    FileName = "bfs"
     inFile = open(FileName + ".cu","r")
     tmpFile = open(FileName + ".tmp.cu", "w+")
     outFile = open(FileName + ".inst.cu", "w+")
@@ -100,7 +121,9 @@ def main():
 
     advice_type = args.advice_type
     kernel_line_number = 0
+    kernel_num = 0
     cudaVarCount = 0
+    genStreamPrefetchFuncList.curStreamNum = 0
     adviceDict = parseAdvice()
     prefetchDict = parsePrefetch()
 
@@ -123,10 +146,12 @@ def main():
     for line_number, line in enumerate(lines):
         if "<<<" in line:
             kernel_line_number = line_number
+            kernel_num += 1
             kernelObj = getPrefetchObj(line)
             # print(kernelObj)
             prefetchFuncList = getPrefetchFuncList(kernelObj, prefetchDict)
-            for pf in prefetchFuncList:
+            streamPrefetchFuncList = genStreamPrefetchFuncList(prefetchFuncList, kernel_num)
+            for pf in streamPrefetchFuncList:
                 print(pf)
                 outFile.write(pf)
             outFile.write(line)

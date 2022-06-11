@@ -8,7 +8,9 @@ application = []
 EDM = []
 UM = []
 Tuned = []
-Speedup = []
+SpeedupOverEDM = []
+SpeedupOverUM = []
+NUM = 9
 fName = "time"
 filePath = "" + fName + "."
 with open(filePath + "txt", "r") as f:
@@ -22,24 +24,30 @@ with open(filePath + "txt", "r") as f:
             idx = idx + 1
             continue
         if case == 0:
-            for i in range(11):
-                print(i, lines[idx])
+            for i in range(NUM):
                 application.append(lines[idx].replace("\n", ""))
                 idx += 1
             case = 1
             continue
         elif case == 1:
-            for i in range(11):
-                print(lines[idx])
+            for i in range(NUM):
                 num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
-                UM.append(num[-1])
+                EDM.append(float(num[-1]))
                 idx += 1
             case = 2
             continue
         elif case == 2:
-            for i in range(11):
+            for i in range(NUM):
                 num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
-                Tuned.append(num[-1])
+                UM.append(float((num[-1])))
+                idx += 1
+            case = 3
+            continue
+        elif case == 3:
+            for i in range(NUM):
+                print(lines[idx])
+                num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
+                Tuned.append(float(num[-1]))
                 idx += 1
             break
         else:
@@ -57,28 +65,38 @@ with open(filePath + "txt", "r") as f:
         # UM.append(float(l2[-1]))
         # Tuned.append(float(l3[-1]))
         # idx = idx + 5
-for i, num in enumerate(UM):
-    n = float(num)/float(Tuned[i])
-    Speedup.append(round(n, 1))
+for i, num in enumerate(EDM):
+    # EDM[i] = round(float(num)/float(UM[i]), 1)
+    # Tuned[i] = round(float(Tuned[i])/float(UM[i]), 1)
+    # UM[i] = 1
+    En = round(float(num)/float(Tuned[i]), 1)
+    Un = round(float(UM[i])/float(Tuned[i]), 1)
+    SpeedupOverEDM.append(round(En, 1))
+    SpeedupOverUM.append(round(Un, 1))
 print(application)
-# print(EDM)
-# print(UM)
-# print(Tuned)
-colors = ['#1f77b4', '#ff7f0e', '#2ca02c', 'r', 'b']
+print(EDM)
+print(UM)
+print(Tuned)
+colors = ['#96C3EB', '#7ECC49', '#EB96EB', 'r', 'b']
+colors = ['#AFB83B', '#299438', '#4073FF', 'r', 'b']
 # labels = ['AAA','BBB','CCC','DDD','EEE','FFF','GGG','HHH','III','JJJ']
 # data1 = [7, 17, 4, 9, 14, 6, 14, 16, 12, 9]
 # data2 = [22,  0, 26, 14, 21, 12,  6, 24,  0, 22]
-width = 0.3
+width = 0.2
 xpos = np.arange(len(application))
 
 
-fig, ax = plt.subplots(figsize=(10,8))
-# bars1 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#1f77b4', label = 'EDM')
-bars2 = plt.bar(xpos, Speedup, align='center', width=width, alpha=0.9, color='#ff7f0e', label = 'Speedup')
-# bars3 = plt.bar(xpos+width, Tuned, align='center', width=width, alpha=0.9, color='#FFFF00', label = 'Tuned')
+fig, ax = plt.subplots(figsize=(14,8))
+bars1 = plt.bar(xpos+width, UM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'EDM',)
+bars2 = plt.bar(xpos, Tuned, align='center', width=width, alpha=0.9, color='#7ECC49', label = 'Tuned/EDM')
+bars3 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/UM')
+
+# For your case
+plt.axhline(y=1.0,linewidth=1, color='k', linestyle ="--")
 
 ax.set_xticks(xpos) 
 ax.set_xticklabels(application)  
+
 
 def autolabel(rects):
     """Attach a text label above each bar in *rects*, displaying its height."""
@@ -91,8 +109,24 @@ def autolabel(rects):
               ha='center', va='bottom'
               )
 # autolabel(bars1)
-autolabel(bars2)
+# autolabel(bars2)
 # autolabel(bars3)
+
+# plt.figure(figsize=(14,8))
+# plt.bar(application,kernel,color="#1f77b4",label="Kernel", edgecolor='black')
+# plt.bar(application,HtoD,color="#ff7f0e",bottom=np.array(kernel),label="HtoD", edgecolor='black')
+# plt.bar(application,DtoH,color="#FFFF00",bottom=np.array(kernel)+np.array(HtoD),label="DtoH", edgecolor='black')
+
+plt.xticks(rotation=30, fontsize=12)
+plt.yticks(fontsize=16)
+plt.ylabel('Speedup over UM and EDM', fontsize=20, fontname = 'Padauk Book')
+
+plt.margins(x=0.05)
+# plt.ylim(0,1.05)
+
+# plt.legend(loc="lower left",bbox_to_anchor=(1.0,1.0))
+
+
 
 plt.legend()
 filePath = "./draw."

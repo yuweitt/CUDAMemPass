@@ -25,7 +25,7 @@ PY_CMD = ""
 TUNE_ITER = 3
 cudaVariableNum = 6
 basicBlockNum = 33
-maxPrefetchSize = 65536
+maxPrefetchSize = 32
 DEVICE = ["0", "cudaCpuDeviceId"]
 ADVICE_NUM = ['advice_{}'.format(i) for i in range(0, cudaVariableNum)]
 ADVICE_DEVICE = ['device_{}'.format(i) for i in range(0, cudaVariableNum)]
@@ -42,6 +42,8 @@ def call_time():
             time = re.findall("\d+\.\d+", result)
             print(i)
             print(time[-1])
+            if float(time[-1]) > 20000:
+                return float(time[-1])
             if i == 0:
                 continue
             total_execution_time += float(time[-1])

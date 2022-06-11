@@ -3,16 +3,12 @@ import matplotlib
 matplotlib.use('Agg')
 
 y = []
-mini = 999999
-fName = "2022_03_31_23-18-time-10000-100000-20-wo-pdt"
+fName = "8192-8192-0-1023-0-1023-0.5-3"
 filePath = "time/" + fName + "."
 with open(filePath + "txt", "r") as f:
     lines = f.readlines()
     for i, line in enumerate(lines):
-        num = float(line.replace("\n", ""))
-        if num < mini:
-            mini = num
-        y.append(mini)
+        y.append(float(line.replace("\n", "")))
     idx = range(0, len(lines), 1)
     print(lines)
     print(idx)
