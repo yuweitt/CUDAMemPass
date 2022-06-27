@@ -126,5 +126,5 @@ plt.legend(loc=2,bbox_to_anchor=(-0.165,1.0), fontsize = 16)
 
 
 filePath = "./draw."
-plt.savefig(filePath + "png")
+plt.savefig(filePath + "png", transparent=True)
 # plt.show()

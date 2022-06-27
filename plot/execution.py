@@ -11,7 +11,7 @@ Tuned = []
 SpeedupOverEDM = []
 SpeedupOverUM = []
 NUM = 9
-fName = "time"
+fName = "time_kernel"
 filePath = "" + fName + "."
 with open(filePath + "txt", "r") as f:
     lines = f.readlines()
@@ -71,12 +71,13 @@ xpos = np.arange(len(application))
 
 
 fig, ax = plt.subplots(figsize=(14,8))
-bars1 = plt.bar(xpos+width, UM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'UM',)
+bars1 = plt.bar(xpos+width, UM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'UM')
 bars2 = plt.bar(xpos, Tuned, align='center', width=width, alpha=0.9, color='#7ECC49', label = 'Tuned')
 bars3 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'EDM')
 
 # For your case
 plt.axhline(y=1.0,linewidth=1, color='k', linestyle ="--")
+plt.grid(axis='y')
 
 ax.set_xticks(xpos) 
 ax.set_xticklabels(application)  
@@ -112,7 +113,7 @@ plt.margins(x=0.05)
 
 
 
-plt.legend()
+plt.legend(fontsize=16)
 filePath = "./draw."
-plt.savefig(filePath + "png")
+plt.savefig(filePath + "png", transparent=True)
 # plt.show()

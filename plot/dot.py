@@ -65,5 +65,5 @@ plt.ylabel('Execution Time (ms)', fontsize=20, labelpad=20)#, fontname = 'Padauk
 
 plt.legend(fontsize = 20)
 filePath = "./draw."
-plt.savefig(filePath + "png")
+plt.savefig(filePath + "png", transparent=True)
 # plt.show()

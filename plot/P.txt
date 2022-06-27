@@ -6,7 +6,7 @@ bfs
 knn
 hotspot
 gesummv
-backcrop
+backprop
 pathfinder
 nw
 nn

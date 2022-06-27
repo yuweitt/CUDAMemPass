@@ -53,18 +53,6 @@ with open(filePath + "txt", "r") as f:
         else:
             continue
 
-        # l0 = lines[idx].replace("\n", "")
-        # l1 = re.findall("\d+\.\d+", lines[idx + 1].replace("\n", ""))
-        # l2 = re.findall("\d+\.\d+", lines[idx + 2].replace("\n", ""))
-        # l3 = re.findall("\d+\.\d+", lines[idx + 3].replace("\n", ""))
-        # # print(l1)
-        # # print(l2)
-        # # print(l3)
-        # application.append(l0)
-        # EDM.append(float(l1[-1]))
-        # UM.append(float(l2[-1]))
-        # Tuned.append(float(l3[-1]))
-        # idx = idx + 5
 for i, num in enumerate(EDM):
     # EDM[i] = round(float(num)/float(UM[i]), 1)
     # Tuned[i] = round(float(Tuned[i])/float(UM[i]), 1)
@@ -74,9 +62,9 @@ for i, num in enumerate(EDM):
     SpeedupOverEDM.append(round(En, 1))
     SpeedupOverUM.append(round(Un, 1))
 print(application)
-print(EDM)
-print(UM)
-print(Tuned)
+print(En)
+print(Un)
+# print(Tuned)
 colors = ['#96C3EB', '#7ECC49', '#EB96EB', 'r', 'b']
 colors = ['#AFB83B', '#299438', '#4073FF', 'r', 'b']
 # labels = ['AAA','BBB','CCC','DDD','EEE','FFF','GGG','HHH','III','JJJ']
@@ -87,12 +75,15 @@ xpos = np.arange(len(application))
 
 
 fig, ax = plt.subplots(figsize=(14,8))
-bars1 = plt.bar(xpos+width, UM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'EDM',)
-bars2 = plt.bar(xpos, Tuned, align='center', width=width, alpha=0.9, color='#7ECC49', label = 'Tuned/EDM')
-bars3 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/UM')
+bars1 = plt.bar(xpos-width, SpeedupOverEDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/EDM',)
+bars2 = plt.bar(xpos, SpeedupOverUM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'Tuned/UM')
+# bars3 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/UM')
+
+
 
 # For your case
 plt.axhline(y=1.0,linewidth=1, color='k', linestyle ="--")
+plt.grid(axis='y')
 
 ax.set_xticks(xpos) 
 ax.set_xticklabels(application)  
@@ -128,7 +119,7 @@ plt.margins(x=0.05)
 
 
 
-plt.legend()
+plt.legend(fontsize = 16, loc=2)
 filePath = "./draw."
-plt.savefig(filePath + "png")
+plt.savefig(filePath + "png", transparent=True)
 # plt.show()
