@@ -2,11 +2,11 @@
 LLVM Pass and Compilation Makefile
 
 |  -- ArchiveScript/        
-    # Old Unused Script  
+|       # Old Unused Script  
 |  -- CUDAMem/              
-    # LLVM Transformation Pass Source Code   
+|       # LLVM Transformation Pass Source Code   
 |  -- TuningScript/         
-    # All Tuning script    
+|       # All Tuning script    
 |  -- plot/                 
-    # Experiment Ploting  
+|       # Experiment Ploting  
 |  -- README.md    overview of the project  
