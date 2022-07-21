@@ -9,4 +9,5 @@ LLVM Pass and Compilation Makefile
 | &emsp;&emsp;&emsp;&emsp; # All Tuning script    
 | &emsp; -- plot/                 
 | &emsp;&emsp;&emsp;&emsp; # Experiment Ploting  
-| &emsp; -- README.md    overview of the project  
+| &emsp; -- README.md     
+| &emsp;&emsp;&emsp;&emsp; # overview of the project 
