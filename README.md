@@ -1,12 +1,12 @@
 # CUDAMemPass
 LLVM Pass and Compilation Makefile
 
-|  -- ArchiveScript/        
-|       # Old Unused Script  
-|  -- CUDAMem/              
-|       # LLVM Transformation Pass Source Code   
-|  -- TuningScript/         
-|       # All Tuning script    
-|  -- plot/                 
-|       # Experiment Ploting  
-|  -- README.md    overview of the project  
+| &emsp; -- ArchiveScript/        
+| &emsp;&emsp; # Old Unused Script  
+| &emsp; -- CUDAMem/              
+| &emsp;&emsp; # LLVM Transformation Pass Source Code   
+| &emsp; -- TuningScript/         
+| &emsp;&emsp; # All Tuning script    
+| &emsp; -- plot/                 
+| &emsp;&emsp; # Experiment Ploting  
+| &emsp; -- README.md    overview of the project  
