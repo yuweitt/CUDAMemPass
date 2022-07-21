@@ -13,24 +13,80 @@ import matplotlib.pyplot as plt
 
 
 ALL = []
-UM = [7545.939355, 10582.5791]
-Tuned = [3380.263403, 3607.538623]
-woAdvise = [3529.652124, 10850.56797]
-woPrefetch = [9939.78584, 3484.87749]
-NAME = ["UM", "Tuned", "Tuned w/o Advise", "Tuned w/o Prefetch"]
-application = ["NW", "GESUMMV"]
+UM = []
+Tuned = []
+Advise = []
+Prefetch = []
+NAME = ["UM", "Tuned", "Advise only", "Prefetch only"]
+application = []
 
-for i in range(0, 2):
-    Tuned[i] = (round(float(UM[i])/float(Tuned[i]), 1))
-    woAdvise[i] = (round(float(UM[i])/float(woAdvise[i]), 1))
-    woPrefetch[i] = (round(float(UM[i])/float(woPrefetch[i]), 1))
-UM[0] = 1
-UM[1] = 1
+NUM = 8
+fName = "ablation"
+filePath = "" + fName + "."
+with open(filePath + "txt", "r") as f:
+    lines = f.readlines()
+    length = len(lines)
+    idx = 0
+    case = 0
+
+    while idx < length:
+        if(lines[idx] == '' or lines[idx] == "\n"):
+            idx = idx + 1
+            continue
+        if case == 0:
+            for i in range(NUM):
+                application.append(lines[idx].replace("\n", ""))
+                idx += 1
+            case = 1
+            continue
+        elif case == 1:
+            for i in range(NUM):
+                num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
+                UM.append(float(num[-1]))
+                idx += 1
+            case = 2
+            continue
+        elif case == 2:
+            for i in range(NUM):
+                num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
+                Tuned.append(float((num[-1])))
+                idx += 1
+            case = 3
+            continue
+        elif case == 3:
+            for i in range(NUM):
+                num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
+                Advise.append(float((num[-1])))
+                idx += 1
+            case = 4
+            continue
+        elif case == 4:
+            for i in range(NUM):
+                # print(lines[idx])
+                num = re.findall("\d+\.\d+", lines[idx].replace("\n", ""))
+                Prefetch.append(float(num[-1]))
+                idx += 1
+            break
+        else:
+            continue
+
+print(application)
+print(Advise)
+
+
+
+
+
+for i in range(NUM):
+    Tuned[i] = (round(float(UM[i])/float(Tuned[i]), 2))
+    Advise[i] = (round(float(UM[i])/float(Advise[i]), 2))
+    Prefetch[i] = (round(float(UM[i])/float(Prefetch[i]), 2))
+    UM[i] = 1
 
 
 print(Tuned)
-print(woAdvise)
-print(woPrefetch)
+print(Advise)
+print(Prefetch)
 
 colors = ['#96C3EB', '#7ECC49', '#EB96EB', 'r', 'b']
 colors = ['#AFB83B', '#299438', '#4073FF', 'r', 'b']
@@ -38,15 +94,15 @@ colors = ['#AFB83B', '#299438', '#4073FF', 'r', 'b']
 # data1 = [7, 17, 4, 9, 14, 6, 14, 16, 12, 9]
 # data2 = [22,  0, 26, 14, 21, 12,  6, 24,  0, 22]
 width = 0.2
-xpos = np.arange(2)
+xpos = np.arange(len(application))
 divWidth = 1.2
 
 
-fig, ax = plt.subplots(figsize=(12,8))
-bars1 = plt.bar(xpos - 1.5 * width, UM, align='center', width=width/divWidth, color='#5579c6', label = 'UM',hatch='\\')
-bars2 = plt.bar(xpos - 0.5 * width, Tuned, align='center', width=width/divWidth, color='#2a9df4', label = 'Tuned',hatch='/')
-bars3 = plt.bar(xpos + 0.5 * width, woAdvise, align='center', width=width/divWidth, color='#1167b1', label = 'Tuned w/o Advise',hatch='/\\')
-bars4 = plt.bar(xpos + 1.5 * width, woPrefetch, align='center', width=width/divWidth, color='#1c4c74', label = 'Tuned w/o Prefetch',hatch='\\-')
+fig, ax = plt.subplots(figsize=(14,8))
+bars2 = plt.bar(xpos - 0.5 * width, Tuned, align='center', width=width/divWidth, color='#7ECC49', label = 'Tuned')#,hatch='/')
+bars1 = plt.bar(xpos - 1.5 * width, UM, align='center', width=width/divWidth, color='#4073FF', label = 'UM')#,hatch='\\')
+bars3 = plt.bar(xpos + 0.5 * width, Advise, align='center', width=width/divWidth, color='#FAD000', label = 'Advise only')#,hatch='/\\')
+bars4 = plt.bar(xpos + 1.5 * width, Prefetch, align='center', width=width/divWidth, color='#FF9933', label = 'Prefetch only')#,hatch='\\-')
 
 # For your case
 plt.axhline(y=1.0,linewidth=1, color='k', linestyle ="--")
@@ -64,7 +120,7 @@ plt.ylabel('Speedup Over UM')
 #     labelbottom=False)
 
 ax.set_xticks(xpos) 
-ax.set_xticklabels(application, fontsize = 16)  
+ax.set_xticklabels(application, fontsize = 12, rotation = 30)  
 
 # plt.bar(application,kernel,color="#1f77b4",label="Kernel", edgecolor='black')
 # plt.bar(application,HtoD,color="#ff7f0e",bottom=np.array(kernel),label="HtoD", edgecolor='black')

@@ -8,7 +8,7 @@ application = []
 kernel = []
 HtoD = []
 DtoH = []
-NUM = 12
+NUM = 10
 fName = "P"
 filePath = "" + fName + "."
 with open(filePath + "txt", "r") as f:
@@ -109,19 +109,26 @@ colors = ['#1f77b4', '#ff7f0e', '#2ca02c', 'r', 'b']
 # autolabel(bars2)
 # autolabel(bars3)
 
-plt.figure(figsize=(16,8))
+plt.figure(figsize=(14,8))
+# fig, ax = plt.subplots(figsize=(14,8))
+plt.subplots_adjust(left=0.16, right=0.95)#, top=0.9, bottom=0.1)
+
+# fig.subplots_adjust(top=0.9, bottom=0.12, left=0.1, right=0.92)
 plt.bar(application,kernel,color="#1f77b4",label="Kernel", edgecolor='black')
 plt.bar(application,HtoD,color="#ff7f0e",bottom=np.array(kernel),label="HtoD", edgecolor='black')
 plt.bar(application,DtoH,color="#FFFF00",bottom=np.array(kernel)+np.array(HtoD),label="DtoH", edgecolor='black')
 
 plt.xticks(rotation=30, fontsize=12)
 plt.yticks(fontsize=14)
-plt.ylabel('Percentage of Function in runtime', fontsize=18, fontname = 'Padauk Book')
+plt.ylabel('Percentage of Function in runtime', fontsize=20, fontname = 'Padauk Book',  labelpad=20)
+plt.title("GPU Activity Profiling", fontsize=24, x=0.45, y=1.04, fontname = 'Padauk Book')
+
 
 plt.margins(x=0.05)
 plt.ylim(0,1.05)
+plt.axvline(1.5, color='r')
 
-plt.legend(loc=2,bbox_to_anchor=(-0.165,1.0), fontsize = 16)
+plt.legend(loc=2,bbox_to_anchor=(-0.2,1.06), fontsize = 16)
 
 
 

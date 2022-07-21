@@ -10,7 +10,7 @@ UM = []
 Tuned = []
 SpeedupOverEDM = []
 SpeedupOverUM = []
-NUM = 9
+NUM = 8
 fName = "time_kernel"
 filePath = "" + fName + "."
 with open(filePath + "txt", "r") as f:
@@ -113,7 +113,7 @@ plt.margins(x=0.05)
 
 
 
-plt.legend(fontsize=16)
+plt.legend(fontsize=16, loc=1)
 filePath = "./draw."
 plt.savefig(filePath + "png", transparent=True)
 # plt.show()

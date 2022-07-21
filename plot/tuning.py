@@ -5,7 +5,7 @@ import plottools
 matplotlib.use('Agg')
 
 y = []
-fName = "GESUMMV"
+fName = "nw"
 minList = []
 filePath = "" + fName + "."
 with open(filePath + "txt", "r") as f:
@@ -39,10 +39,10 @@ plot(ax1)
 plot(ax2)
 
 
-ax1.set_ylim(4800, 5500) # Top graph
-ax2.set_ylim(800, 1500) # Bottom graph
-# ax1.set_ylim(9000, 11000) # Top graph
-# ax2.set_ylim(3000, 5000) # Bottom graph
+# ax1.set_ylim(4800, 5500) # Top graph
+# ax2.set_ylim(800, 1500) # Bottom graph
+ax1.set_ylim(9000, 11000) # Top graph
+ax2.set_ylim(3000, 5000) # Bottom graph
 
 ax1.spines['bottom'].set_visible(False)
 ax2.spines['top'].set_visible(False)
@@ -50,8 +50,8 @@ ax1.xaxis.tick_top()
 ax1.tick_params(labeltop=False)  # don't put tick labels at the top
 ax2.xaxis.tick_bottom()
 
-ax_zoom = plottools.zoom_axes(fig,ax2,[0,25],[800,1100],[400,800],[1200,1800])
-# ax_zoom = plottools.zoom_axes(fig,ax2,[0,60],[3200,5000],[200,350],[4500,6000])
+# ax_zoom = plottools.zoom_axes(fig,ax2,[0,25],[800,1100],[400,800],[1200,1800])
+ax_zoom = plottools.zoom_axes(fig,ax2,[0,60],[3200,5000],[200,350],[4500,6000])
 ax_zoom.tick_params(axis="both", labelsize=8)
 # ax_zoom.grid(color='gray')
 

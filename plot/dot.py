@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 
 INPUT = ["2048", "4096", "8192", "16384", "32768"]
 EDM_INPUT = ["2048", "4096", "8192", "16384"]
-EDM = [96.8601005,	95.051799,	263.703296,	1215.903296]
-UM = [54.9196999,	84.3032997,	202.0010026,	1010.512293,	7545.939355]
-Tuned = [55.3665001,	83.4168998,	202.5664016,	915.2014037,	3380.263403]
+EDM = [2.57631,	6.05008,	58.9122,	573.919]
+UM = [10.337,	34.4695,	129.661,	755.835,	7854.938]
+Tuned = [2.8084,	6.59051,	52.5987,	515.528,	3089.735]
+
 
 print(EDM)
 print(UM)
@@ -24,8 +25,8 @@ xpos = np.arange(len(INPUT))
 fig, ax = plt.subplots(figsize=(14,8))
 # plt.figure(figsize=(15,10),dpi=100,linewidth = 2)
 bars1 = plt.plot(INPUT, UM,'s-', color='#4073FF', label = 'UM',)
-bars2 = plt.plot(INPUT, Tuned,'s-', color='#7ECC49', label = 'Tuned')
 bars3 = plt.plot(EDM_INPUT, EDM, 's-', color='#FAD000', label = 'EDM')
+bars2 = plt.plot(INPUT, Tuned,'s-', color='#7ECC49', label = 'Tuned')
 
 # For your case
 # plt.axhline(y=1.0,linewidth=1, color='k', linestyle ="--")

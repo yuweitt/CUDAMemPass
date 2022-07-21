@@ -77,7 +77,7 @@ xpos = np.arange(len(application))
 fig, ax = plt.subplots(figsize=(14,8))
 bars1 = plt.bar(xpos-width, SpeedupOverEDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/EDM',)
 bars2 = plt.bar(xpos, SpeedupOverUM, align='center', width=width, alpha=0.9, color='#4073FF', label = 'Tuned/UM')
-# bars3 = plt.bar(xpos-width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/UM')
+# bars3 = plt.bar(xpos+width, EDM, align='center', width=width, alpha=0.9, color='#FAD000', label = 'Tuned/UM')
 
 
 
